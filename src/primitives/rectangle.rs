@@ -60,7 +60,16 @@ impl OpenGLObjectTrait for Rectangle {
             Self::setup_shaders(gl, &program, self.source.clone());
             gl.use_program(Some(program));
 
-            let vertices = [0f32, 0f32, 0f32, 100f32, 100f32, 100f32, 100f32, 0f32];
+            let vertices = [
+                0f32,
+                0f32,
+                0f32,
+                self.width as f32,
+                self.width as f32,
+                self.height as f32,
+                self.height as f32,
+                0f32,
+            ];
 
             self.buffers = Some(Self::setup_buffers(
                 gl,
