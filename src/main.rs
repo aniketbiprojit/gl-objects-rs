@@ -3,6 +3,7 @@ use crate::primitives::triangle;
 use crate::window::Window;
 use crate::window::WindowTrait;
 
+mod imgui_ctx;
 mod object;
 mod primitives;
 pub mod shaders;
@@ -17,22 +18,35 @@ fn main() {
     let title = "Window".to_string();
 
     // #[cfg(feature = "use_glfw")]
-    let mut handle =
+    let handle =
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 
+    let objects: &mut Vec<&mut dyn object::OpenGLObjectTrait> = &mut vec![];
     // #[cfg(not(feature = "use_default"))]
-    // let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
-    //     width,
-    //     height,
-    //     format!("SDL {}", title.clone()),
-    // );
+    let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
+        width,
+        height,
+        format!("SDL {}", title.clone()),
+    );
 
-    let rectangle1 = &mut Rectangle::new(2, 3, "resources/rectangle2.shader");
+    let rectangle1 = &mut Rectangle::new(200, 200, "resources/rectangle2.shader");
 
     let triangle2 = &mut triangle::Triangle::new(
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
         "resources/rectangle1.shader",
     );
+    objects.push(rectangle1);
+    objects.push(triangle2);
 
-    handle.create_display(&mut vec![rectangle1, triangle2]);
+    handle.create_display();
+
+    let mut imgui_ctx = Some(imgui_ctx::ImguiCtx::new(|s| -> *const std::ffi::c_void {
+        handle.load_with(s)
+    }));
+
+    if imgui_ctx.is_some() {
+        objects.push(imgui_ctx.as_mut().unwrap());
+    }
+
+    handle.render(objects)
 }

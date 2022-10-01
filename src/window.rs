@@ -24,9 +24,9 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>);
+    fn create_display<'a>(&mut self);
     fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>);
-    fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
+    fn load_with(&mut self, s: &str) -> *const std::ffi::c_void;
 }
 
 impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
@@ -84,7 +84,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         }
     }
 
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
+    fn create_display<'a>(&mut self) {
         let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
         glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
@@ -110,7 +110,11 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
         window.set_framebuffer_size_polling(true);
 
-        let gl = unsafe { glow::Context::from_loader_function(|s| self.load_with(&mut window, s)) };
+        let gl = unsafe {
+            glow::Context::from_loader_function(|s| {
+                window.get_proc_address(s) as *const std::ffi::c_void
+            })
+        };
 
         println!("GLFW: {:?}", gl.version());
         glfw.set_swap_interval(glfw::SwapInterval::Adaptive);
@@ -119,16 +123,16 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         self.internal_handle = Some(Box::new(window));
         self.gl = Some(Box::new(gl));
 
-        self.render(objects);
+        // self.render(objects);
     }
 
-    fn load_with(&mut self, window: &mut glfw::Window, s: &str) -> *const std::ffi::c_void {
-        window.get_proc_address(s) as *const std::ffi::c_void
+    fn load_with(&mut self, s: &str) -> *const std::ffi::c_void {
+        self.internal_handle.as_mut().unwrap().get_proc_address(s) as *const std::ffi::c_void
     }
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
+    fn create_display<'a>(&mut self) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -139,7 +143,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
         gl_attr.set_context_flags().debug().set();
 
-        let mut window = video_subsystem
+        let window = video_subsystem
             .window(&self.title, self.width, self.height)
             .allow_highdpi()
             .opengl()
@@ -149,7 +153,9 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             .unwrap();
 
         let gl_context = window.gl_create_context().unwrap();
-        let gl = unsafe { glow::Context::from_loader_function(|s| self.load_with(&mut window, s)) };
+        let gl = unsafe {
+            glow::Context::from_loader_function(|s| window.subsystem().gl_get_proc_address(s) as _)
+        };
 
         println!("SDL {:?}", gl.version());
 
@@ -161,11 +167,15 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         self.internal_handle = Some(Box::new(window));
         self.gl = Some(Box::new(gl));
 
-        self.render(objects);
+        // self.render(objects);
     }
 
-    fn load_with(&mut self, window: &mut sdl2::video::Window, s: &str) -> *const std::ffi::c_void {
-        window.subsystem().gl_get_proc_address(s) as _
+    fn load_with(&mut self, s: &str) -> *const std::ffi::c_void {
+        self.internal_handle
+            .as_ref()
+            .unwrap()
+            .subsystem()
+            .gl_get_proc_address(s) as _
     }
 
     // calling externally on SDL2 fails.
@@ -183,6 +193,9 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let gl = self.gl.as_ref().unwrap();
             let ctx = self.ctx.as_ref().unwrap();
             let window = self.internal_handle.as_ref().unwrap();
+            let gl_context = window.gl_create_context().unwrap();
+
+            window.gl_make_current(&gl_context).unwrap();
 
             let mut event_pump = ctx.event_pump().unwrap();
 
