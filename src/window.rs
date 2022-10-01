@@ -6,9 +6,9 @@ pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
     pub height: u32,
     pub title: String,
-    pub ctx: Option<WindowContext>,
-    pub internal_handle: Option<WindowHandle>,
-    pub gl: Option<glow::Context>,
+    pub ctx: Option<Box<WindowContext>>,
+    pub internal_handle: Option<Box<WindowHandle>>,
+    pub gl: Option<Box<glow::Context>>,
 }
 
 pub trait WindowTrait<WindowContext, WindowHandle> {
@@ -22,74 +22,107 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ());
+    fn create_display(
+        &mut self,
+        setup_shaders: impl Fn(&glow::Context) -> glow::NativeProgram,
+        setup_buffers: impl Fn(
+            &glow::Context,
+        ) -> (
+            glow::NativeBuffer,
+            glow::NativeVertexArray,
+            glow::NativeBuffer,
+        ),
+    );
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
 }
 
-impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
-    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ()) {
-        let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+// impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
+//     fn create_display(&mut self, setup_shaders: impl Fn(&glow::Context) -> ()) {
+//         let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-        glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
-        glfw.window_hint(glfw::WindowHint::ContextVersionMinor(1));
-        glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-            glfw::OpenGlProfileHint::Core,
-        ));
+//         glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
+//         glfw.window_hint(glfw::WindowHint::ContextVersionMinor(1));
+//         glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+//             glfw::OpenGlProfileHint::Core,
+//         ));
 
-        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
+//         glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
 
-        let (mut window, ..) = glfw
-            .create_window(
-                self.width,
-                self.height,
-                &self.title,
-                glfw::WindowMode::Windowed,
-            )
-            .expect("Failed to create GLFW window.");
+//         let (mut window, ..) = glfw
+//             .create_window(
+//                 self.width,
+//                 self.height,
+//                 &self.title,
+//                 glfw::WindowMode::Windowed,
+//             )
+//             .expect("Failed to create GLFW window.");
 
-        window.set_all_polling(true);
-        window.make_current();
+//         window.set_all_polling(true);
+//         window.make_current();
 
-        self.gl = unsafe {
-            Some(glow::Context::from_loader_function(|s| {
-                self.load_with(&mut window, s)
-            }))
-        };
+//         self.gl = unsafe {
+//             Some(glow::Context::from_loader_function(|s| {
+//                 self.load_with(&mut window, s)
+//             }))
+//         };
 
-        let gl = &mut &self.gl.take().unwrap();
+//         let gl = &mut &self.gl.take().unwrap();
 
-        println!("{:?}", gl.version());
-        let (sender, receiver): (
-            std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
-            std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
-        ) = channel();
+//         println!("{:?}", gl.version());
+//         let (sender, receiver): (
+//             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
+//             std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+//         ) = channel();
+//         unsafe {
+//             glfw::ffi::glfwSetWindowUserPointer(
+//                 window.window_ptr(),
+//                 std::mem::transmute(Box::new(sender)),
+//             );
+//         }
+
+//         while !window.should_close() {
+//             glfw.poll_events();
+//             for (_, event) in glfw::flush_messages(&receiver) {
+//                 println!("{:?}", event);
+//                 render(gl);
+//                 window.swap_buffers();
+//             }
+//         }
+
+//         self.ctx = Some(glfw);
+//         self.internal_handle = Some(window);
+//     }
+
+//     fn load_with(&mut self, window: &mut glfw::Window, s: &str) -> *const std::ffi::c_void {
+//         window.get_proc_address(s) as *const c_void
+//     }
+// }
+
+impl Window<sdl2::Sdl, sdl2::video::Window> {
+    fn render(&self) {
+        if self.gl.is_none() {
+            panic!("gl is none");
+        }
         unsafe {
-            glfw::ffi::glfwSetWindowUserPointer(
-                window.window_ptr(),
-                std::mem::transmute(Box::new(sender)),
-            );
+            let gl = self.gl.as_ref().unwrap();
+
+            let program = gl.as_ref().create_program().expect("Cannot create program");
         }
-
-        while !window.should_close() {
-            glfw.poll_events();
-            for (_, event) in glfw::flush_messages(&receiver) {
-                println!("{:?}", event);
-                render(gl);
-                window.swap_buffers();
-            }
-        }
-
-        self.ctx = Some(glfw);
-        self.internal_handle = Some(window);
-    }
-
-    fn load_with(&mut self, window: &mut glfw::Window, s: &str) -> *const std::ffi::c_void {
-        window.get_proc_address(s) as *const c_void
     }
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ()) {
+    fn create_display(
+        &mut self,
+        setup_shaders: impl Fn(&glow::Context) -> glow::NativeProgram,
+        setup_buffers: impl Fn(
+            &glow::Context,
+        ) -> (
+            glow::NativeBuffer,
+            glow::NativeVertexArray,
+            glow::NativeBuffer,
+        ),
+    ) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -118,39 +151,50 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
         window.subsystem().gl_set_swap_interval(1).unwrap();
 
-        self.ctx = Some(ctx);
-        self.internal_handle = Some(window);
-        self.gl = Some(gl);
+        let mut event_pump = ctx.event_pump().unwrap();
 
-        let mut event_pump = self
-            .ctx
-            .as_ref()
-            .expect("Context not initialized before event loop")
-            .event_pump()
-            .unwrap();
+        self.ctx = Some(Box::new(ctx));
+        self.internal_handle = Some(Box::new(window));
+        self.gl = Some(Box::new(gl));
+        self.render();
 
-        let gl = &mut &self.gl.take().unwrap();
+        return;
+        //
+        let program = setup_shaders(&gl);
 
-        'event_loop: loop {
-            for event in event_pump.poll_iter() {
-                println!("{:?}", event);
-
-                // unsafe {
-                //     gl.clear_color(0.2, 0.4, 0.8, 1.0);
-                //     gl.clear(glow::COLOR_BUFFER_BIT);
-                // }
-                render(gl);
-
-                self.internal_handle
-                    .as_ref()
-                    .expect("Failed to get window handle")
-                    .gl_swap_window();
-
-                if let sdl2::event::Event::Quit { .. } = event {
-                    break 'event_loop;
-                }
-            }
+        unsafe {
+            gl.use_program(Some(program));
         }
+        unsafe {
+            let (vbo, vao, ibo) = setup_buffers(&gl);
+
+            gl.clear_color(0.1, 0.2, 0.3, 1.0);
+
+            'render: loop {
+                {
+                    for event in event_pump.poll_iter() {
+                        if let sdl2::event::Event::Quit { .. } = event {
+                            break 'render;
+                        }
+                    }
+                }
+
+                gl.clear(glow::COLOR_BUFFER_BIT);
+
+                gl.draw_arrays(glow::TRIANGLES, 0, 3);
+
+                window.gl_swap_window();
+            }
+
+            // Clean up
+            gl.delete_program(program);
+            gl.delete_vertex_array(vao);
+            gl.delete_buffer(vbo);
+            gl.delete_buffer(ibo);
+        }
+        self.ctx = Some(Box::new(ctx));
+        self.internal_handle = Some(Box::new(window));
+        self.gl = Some(Box::new(gl));
     }
 
     fn load_with(&mut self, window: &mut sdl2::video::Window, s: &str) -> *const std::ffi::c_void {
