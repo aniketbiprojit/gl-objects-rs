@@ -204,6 +204,10 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 window.drawable_size().1 as i32,
             );
 
+            let imgui_ctx = &mut crate::imgui_ctx::ImguiCtx::new(|s| -> *const std::ffi::c_void {
+                window.subsystem().gl_get_proc_address(s) as _
+            });
+
             'render: loop {
                 let mut test_event = TestingEvent::Ignore;
                 {
@@ -232,12 +236,15 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                     elem.attach(gl);
                     elem.render(gl, &test_event);
                 }
+                imgui_ctx.attach(gl);
+                imgui_ctx.render(gl, &test_event);
 
                 window.gl_swap_window();
             }
             for elem in objects.into_iter() {
                 elem.detach(gl);
             }
+            imgui_ctx.detach(gl);
         }
     }
 }

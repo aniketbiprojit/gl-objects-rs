@@ -22,6 +22,8 @@ fn main() {
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 
     let objects: &mut Vec<&mut dyn object::OpenGLObjectTrait> = &mut vec![];
+    let sdl = true;
+
     // #[cfg(not(feature = "use_default"))]
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
         width,
@@ -40,9 +42,12 @@ fn main() {
 
     handle.create_display();
 
-    let mut imgui_ctx = Some(imgui_ctx::ImguiCtx::new(|s| -> *const std::ffi::c_void {
-        handle.load_with(s)
-    }));
+    let mut imgui_ctx = None;
+    if !sdl {
+        imgui_ctx = Some(imgui_ctx::ImguiCtx::new(|s| -> *const std::ffi::c_void {
+            handle.load_with(s)
+        }));
+    }
 
     if imgui_ctx.is_some() {
         objects.push(imgui_ctx.as_mut().unwrap());
