@@ -1,3 +1,4 @@
+use crate::primitives::rectangle::Rectangle;
 use crate::primitives::triangle;
 use crate::window::Window;
 use crate::window::WindowTrait;
@@ -21,15 +22,12 @@ fn main() {
     // #[cfg(not(feature = "use_default"))]
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
 
-    let triangle1 = &mut triangle::Triangle::new(
-        [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
-        "resources/rectangle.shader",
-    );
+    let rectangle1 = &mut Rectangle::new(2, 3, "resources/rectangle.shader");
 
     let triangle2 = &mut triangle::Triangle::new(
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
         "resources/rectangle1.shader",
     );
 
-    handle.create_display(&mut vec![triangle2, triangle1]);
+    handle.create_display(&mut vec![triangle2, rectangle1]);
 }
