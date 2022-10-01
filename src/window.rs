@@ -24,7 +24,7 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display(&mut self);
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>);
     fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>);
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
 }
@@ -80,7 +80,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         }
     }
 
-    fn create_display(&mut self) {
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>) {
         let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
         glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
@@ -110,6 +110,8 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         self.ctx = Some(Box::new(glfw));
         self.internal_handle = Some(Box::new(window));
         self.gl = Some(Box::new(gl));
+
+        self.render(objects);
     }
 
     fn load_with(&mut self, window: &mut glfw::Window, s: &str) -> *const std::ffi::c_void {
@@ -118,7 +120,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display(&mut self) {
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -150,12 +152,15 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         self.ctx = Some(Box::new(ctx));
         self.internal_handle = Some(Box::new(window));
         self.gl = Some(Box::new(gl));
+
+        self.render(objects);
     }
 
     fn load_with(&mut self, window: &mut sdl2::video::Window, s: &str) -> *const std::ffi::c_void {
         window.subsystem().gl_get_proc_address(s) as _
     }
 
+    // calling externally on SDL2 fails.
     fn render(&mut self, objects: &mut Vec<&mut dyn OpenGLObject>) {
         if self.gl.is_none() {
             panic!("gl is none");

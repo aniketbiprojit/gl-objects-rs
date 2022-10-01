@@ -16,12 +16,11 @@ fn main() {
     let title = "GL Window".to_string();
 
     // #[cfg(feature = "use_glfw")]
-    let mut handle = Window::<glfw::Glfw, glfw::Window>::new(width, height, title);
+    // let mut handle = Window::<glfw::Glfw, glfw::Window>::new(width, height, title.clone());
 
     // #[cfg(not(feature = "use_default"))]
-    // let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
+    let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
 
-    handle.create_display();
     let triangle1 = &mut triangle::Triangle::new(
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
         "resources/rectangle.shader",
@@ -32,5 +31,5 @@ fn main() {
         "resources/rectangle1.shader",
     );
 
-    handle.render(&mut vec![triangle2, triangle1])
+    handle.create_display(&mut vec![triangle2, triangle1]);
 }
