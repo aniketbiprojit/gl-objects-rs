@@ -2,6 +2,9 @@ use crate::window::Window;
 use crate::window::WindowTrait;
 use glow::HasContext;
 
+mod object;
+mod primitives;
+pub mod shaders;
 mod window;
 
 fn main() {
@@ -19,7 +22,6 @@ fn main() {
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
 
     handle.create_display(render);
-
 }
 
 fn render(gl: &mut &glow::Context) {
