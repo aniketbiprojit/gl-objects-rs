@@ -1,13 +1,18 @@
 use crate::shaders::ShaderData;
 use glow::{Context, HasContext, NativeProgram};
 
-pub struct SetupBufferReturn {
+#[derive(Debug)]
+pub struct BufferData {
     pub vbo: glow::NativeBuffer,
     pub vao: glow::NativeVertexArray,
     pub ibo: glow::NativeBuffer,
 }
 
 pub trait OpenGLObject {
+    fn attach(&mut self, gl: &Context);
+    fn render(&mut self, gl: &Context);
+    fn detach(&mut self, gl: &Context);
+
     unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String) {
         let shaders = ShaderData::new(source);
 
@@ -15,8 +20,6 @@ pub trait OpenGLObject {
             (glow::VERTEX_SHADER, shaders.vertex_shader.source),
             (glow::FRAGMENT_SHADER, shaders.fragment_shader.source),
         ];
-
-        println!("Shader Sources: {:?}", shader_sources);
 
         let mut shaders = Vec::with_capacity(shader_sources.len());
 
@@ -54,37 +57,40 @@ pub trait OpenGLObject {
     unsafe fn setup_buffers(
         gl: &Context,
         vertices: &[f32],
-        _indices: &[u32],
+        indices: &[u32],
         vao_size: i32,
         vao_stride: i32,
-    ) -> SetupBufferReturn {
-        let positions_u8: &[u8] = core::slice::from_raw_parts(
-            vertices.as_ptr() as *const u8,
-            vertices.len() * core::mem::size_of::<f32>(),
-        );
+    ) -> BufferData {
+        let (vbo, vao, ibo) = {
+            let triangle_vertices_u8: &[u8] = core::slice::from_raw_parts(
+                vertices.as_ptr() as *const u8,
+                vertices.len() * core::mem::size_of::<f32>(),
+            );
 
-        // let indices_u8: &[u8] = core::slice::from_raw_parts(
-        //     indices.as_ptr() as *const u8,
-        //     indices.len() * core::mem::size_of::<u32>(),
-        // );
+            let indices = indices;
 
-        // We construct a buffer and upload the data
-        let vbo = gl.create_buffer().unwrap();
-        gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
-        gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, positions_u8, glow::STATIC_DRAW);
+            let indices_u8 = core::slice::from_raw_parts(
+                indices.as_ptr() as *const u8,
+                indices.len() * core::mem::size_of::<u32>(),
+            );
 
-        // vertex array object
-        let vao = gl.create_vertex_array().unwrap();
-        gl.bind_vertex_array(Some(vao));
-        gl.vertex_attrib_pointer_f32(0, vao_size, glow::FLOAT, false, vao_stride, 0);
+            // We construct a buffer and upload the data
+            let vbo = gl.create_buffer().unwrap();
+            gl.bind_buffer(glow::ARRAY_BUFFER, Some(vbo));
+            gl.buffer_data_u8_slice(glow::ARRAY_BUFFER, triangle_vertices_u8, glow::STATIC_DRAW);
 
-        // index buffer
-        let ibo = gl.create_buffer().unwrap();
+            // We now construct a vertex array to describe the format of the input buffer
+            let vao = gl.create_vertex_array().unwrap();
+            gl.bind_vertex_array(Some(vao));
+            gl.enable_vertex_attrib_array(0);
+            gl.vertex_attrib_pointer_f32(0, vao_size, glow::FLOAT, false, vao_stride, 0);
 
-        // gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ibo));
+            let ibo = gl.create_buffer().unwrap();
+            gl.bind_buffer(glow::ELEMENT_ARRAY_BUFFER, Some(ibo));
+            gl.buffer_data_u8_slice(glow::ELEMENT_ARRAY_BUFFER, indices_u8, glow::STATIC_DRAW);
 
-        // gl.buffer_data_u8_slice(glow::ELEMENT_ARRAY_BUFFER, indices_u8, glow::STATIC_DRAW);
-
-        SetupBufferReturn { vbo, vao, ibo }
+            (vbo, vao, ibo)
+        };
+        BufferData { vbo, vao, ibo }
     }
 }
