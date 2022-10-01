@@ -44,7 +44,7 @@ const FRAGMENT_SHADER_SOURCE: &str = r#"#version 330
     color = vec4(position, 1.0, 1.0);
   }"#;
 
-fn setup_shaders(gl: &glow::Context) -> glow::NativeProgram {
+pub fn setup_shaders(gl: &glow::Context) -> glow::NativeProgram {
     let program = unsafe {
         let program = gl.create_program().expect("Cannot create program");
 
@@ -83,7 +83,7 @@ fn setup_shaders(gl: &glow::Context) -> glow::NativeProgram {
     program
 }
 
-fn setup_buffers(
+pub fn setup_buffers(
     gl: &glow::Context,
 ) -> (
     glow::NativeBuffer,

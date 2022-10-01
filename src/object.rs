@@ -8,8 +8,9 @@ pub struct SetupBufferReturn {
 }
 
 pub trait OpenGLObject {
-    unsafe fn setup_shaders(gl: &Context, program: NativeProgram, source: String) {
+    unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String) {
         let shaders = ShaderData::new(source);
+
         let shader_sources = [
             (glow::VERTEX_SHADER, shaders.vertex_shader.source),
             (glow::FRAGMENT_SHADER, shaders.fragment_shader.source),
@@ -33,19 +34,19 @@ pub trait OpenGLObject {
                 );
             }
 
-            gl.attach_shader(program, shader);
+            gl.attach_shader(*program, shader);
 
             shaders.push(shader);
         }
 
-        gl.link_program(program);
+        gl.link_program(*program);
 
-        if !gl.get_program_link_status(program) {
-            panic!("{}", gl.get_program_info_log(program));
+        if !gl.get_program_link_status(*program) {
+            panic!("{}", gl.get_program_info_log(*program));
         }
 
         for shader in shaders {
-            gl.detach_shader(program, shader);
+            gl.detach_shader(*program, shader);
             gl.delete_shader(shader);
         }
     }
@@ -53,21 +54,19 @@ pub trait OpenGLObject {
     unsafe fn setup_buffers(
         gl: &Context,
         vertices: &[f32],
-        indices: &[u32],
+        _indices: &[u32],
         vao_size: i32,
         vao_stride: i32,
     ) -> SetupBufferReturn {
-        let vertices = [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32];
-
         let positions_u8: &[u8] = core::slice::from_raw_parts(
             vertices.as_ptr() as *const u8,
             vertices.len() * core::mem::size_of::<f32>(),
         );
 
-        let indices_u8: &[u8] = core::slice::from_raw_parts(
-            indices.as_ptr() as *const u8,
-            indices.len() * core::mem::size_of::<u32>(),
-        );
+        // let indices_u8: &[u8] = core::slice::from_raw_parts(
+        //     indices.as_ptr() as *const u8,
+        //     indices.len() * core::mem::size_of::<u32>(),
+        // );
 
         // We construct a buffer and upload the data
         let vbo = gl.create_buffer().unwrap();

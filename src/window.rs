@@ -1,6 +1,8 @@
 use glfw::Context;
 use glow::HasContext;
-use std::{ffi::c_void, sync::mpsc::channel};
+use std::{ffi::c_void, primitive, sync::mpsc::channel};
+
+use crate::object::{self, OpenGLObject};
 
 pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
@@ -103,10 +105,53 @@ impl Window<sdl2::Sdl, sdl2::video::Window> {
         if self.gl.is_none() {
             panic!("gl is none");
         }
+        if self.internal_handle.is_none() {
+            panic!("internal_handle is none");
+        }
+        if self.ctx.is_none() {
+            panic!("ctx is none");
+        }
         unsafe {
             let gl = self.gl.as_ref().unwrap();
+            let ctx = self.ctx.as_ref().unwrap();
+            let window = self.internal_handle.as_ref().unwrap();
 
-            let program = gl.as_ref().create_program().expect("Cannot create program");
+            let program = gl.create_program().expect("Cannot create program");
+
+            // let program = crate::setup_shaders(&gl);
+            crate::primitives::triangle::Triangle::setup_shaders(
+                gl,
+                &program,
+                "resources/rectangle.shader".to_string(),
+            );
+            gl.use_program(Some(program));
+
+            let (vbo, vao, ibo) = crate::setup_buffers(&gl);
+            let mut event_pump = ctx.event_pump().unwrap();
+
+            gl.clear_color(0.1, 0.2, 0.3, 1.0);
+
+            'render: loop {
+                {
+                    for event in event_pump.poll_iter() {
+                        if let sdl2::event::Event::Quit { .. } = event {
+                            break 'render;
+                        }
+                    }
+                }
+
+                gl.clear(glow::COLOR_BUFFER_BIT);
+
+                gl.draw_arrays(glow::TRIANGLES, 0, 3);
+
+                window.gl_swap_window();
+            }
+
+            // Clean up
+            gl.delete_program(program);
+            gl.delete_vertex_array(vao);
+            gl.delete_buffer(vbo);
+            gl.delete_buffer(ibo);
         }
     }
 }
@@ -151,7 +196,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
         window.subsystem().gl_set_swap_interval(1).unwrap();
 
-        let mut event_pump = ctx.event_pump().unwrap();
+        // let mut event_pump = ctx.event_pump().unwrap();
 
         self.ctx = Some(Box::new(ctx));
         self.internal_handle = Some(Box::new(window));
@@ -160,41 +205,41 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
         return;
         //
-        let program = setup_shaders(&gl);
+        // let program = setup_shaders(&gl);
 
-        unsafe {
-            gl.use_program(Some(program));
-        }
-        unsafe {
-            let (vbo, vao, ibo) = setup_buffers(&gl);
+        // unsafe {
+        //     gl.use_program(Some(program));
+        // }
+        // unsafe {
+        //     let (vbo, vao, ibo) = setup_buffers(&gl);
 
-            gl.clear_color(0.1, 0.2, 0.3, 1.0);
+        //     gl.clear_color(0.1, 0.2, 0.3, 1.0);
 
-            'render: loop {
-                {
-                    for event in event_pump.poll_iter() {
-                        if let sdl2::event::Event::Quit { .. } = event {
-                            break 'render;
-                        }
-                    }
-                }
+        //     'render: loop {
+        //         {
+        //             for event in event_pump.poll_iter() {
+        //                 if let sdl2::event::Event::Quit { .. } = event {
+        //                     break 'render;
+        //                 }
+        //             }
+        //         }
 
-                gl.clear(glow::COLOR_BUFFER_BIT);
+        //         gl.clear(glow::COLOR_BUFFER_BIT);
 
-                gl.draw_arrays(glow::TRIANGLES, 0, 3);
+        //         gl.draw_arrays(glow::TRIANGLES, 0, 3);
 
-                window.gl_swap_window();
-            }
+        //         window.gl_swap_window();
+        //     }
 
-            // Clean up
-            gl.delete_program(program);
-            gl.delete_vertex_array(vao);
-            gl.delete_buffer(vbo);
-            gl.delete_buffer(ibo);
-        }
-        self.ctx = Some(Box::new(ctx));
-        self.internal_handle = Some(Box::new(window));
-        self.gl = Some(Box::new(gl));
+        //     // Clean up
+        //     gl.delete_program(program);
+        //     gl.delete_vertex_array(vao);
+        //     gl.delete_buffer(vbo);
+        //     gl.delete_buffer(ibo);
+        // }
+        // self.ctx = Some(Box::new(ctx));
+        // self.internal_handle = Some(Box::new(window));
+        // self.gl = Some(Box::new(gl));
     }
 
     fn load_with(&mut self, window: &mut sdl2::video::Window, s: &str) -> *const std::ffi::c_void {
