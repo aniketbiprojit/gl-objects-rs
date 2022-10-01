@@ -1,12 +1,14 @@
 use glfw::Context;
 use glow::HasContext;
 use std::{ffi::c_void, sync::mpsc::channel};
+
 pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
     pub height: u32,
     pub title: String,
     pub ctx: Option<WindowContext>,
     pub internal_handle: Option<WindowHandle>,
+    pub gl: Option<glow::Context>,
 }
 
 pub trait WindowTrait<WindowContext, WindowHandle> {
@@ -17,11 +19,13 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             title: format!("{}", title),
             ctx: None,
             internal_handle: None,
+            gl: None,
         }
     }
     fn create_display(&mut self);
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
-    fn event_loop(&mut self);
+    // fn (&mut self);
+    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ());
 }
 
 impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
@@ -54,11 +58,12 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
         self.ctx = Some(glfw);
         self.internal_handle = Some(window);
+        self.gl = Some(gl);
     }
 
-    fn event_loop(&mut self) {
+    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ()) {
         let mut glfw = self.ctx.take().unwrap();
-        let window = self.internal_handle.take().unwrap();
+        let mut window = self.internal_handle.take().unwrap();
 
         let (sender, receiver): (
             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
@@ -71,10 +76,14 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
+        let gl = &mut self.gl.take().unwrap();
+
         while !window.should_close() {
             glfw.poll_events();
             for (_, event) in glfw::flush_messages(&receiver) {
                 println!("{:?}", event);
+                render(gl);
+                window.swap_buffers();
             }
         }
     }
@@ -116,9 +125,10 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
         self.ctx = Some(ctx);
         self.internal_handle = Some(window);
+        self.gl = Some(gl);
     }
 
-    fn event_loop(&mut self) {
+    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ()) {
         let mut event_pump = self
             .ctx
             .as_ref()
@@ -126,12 +136,19 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             .event_pump()
             .unwrap();
 
+        let gl = &mut self.gl.take().unwrap();
+
         'event_loop: loop {
             for event in event_pump.poll_iter() {
+                println!("{:?}", event);
+
+                render(gl);
+
                 self.internal_handle
                     .as_ref()
-                    .expect("REASON")
+                    .expect("Failed to get window handle")
                     .gl_swap_window();
+
                 if let sdl2::event::Event::Quit { .. } = event {
                     break 'event_loop;
                 }
