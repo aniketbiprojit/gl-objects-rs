@@ -166,13 +166,12 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         self.ctx = Some(Box::new(ctx));
         self.internal_handle = Some(Box::new(window));
         self.gl = Some(Box::new(gl));
-
         // self.render(objects);
     }
 
     fn load_with(&mut self, s: &str) -> *const std::ffi::c_void {
         self.internal_handle
-            .as_ref()
+            .as_mut()
             .unwrap()
             .subsystem()
             .gl_get_proc_address(s) as _
