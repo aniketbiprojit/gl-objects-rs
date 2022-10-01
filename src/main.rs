@@ -1,3 +1,4 @@
+use crate::primitives::triangle;
 use crate::window::Window;
 use crate::window::WindowTrait;
 
@@ -21,5 +22,9 @@ fn main() {
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
 
     handle.create_display();
-    // handle.event_loop(render, render, render);
+    let triangle1 = &mut triangle::Triangle::new([0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32]);
+
+    let triangle2 = &mut triangle::Triangle::new([0.5, 0.5, 0.0, -0.5, -0.5, 0.0]);
+
+    handle.render(&mut vec![triangle2, triangle1])
 }

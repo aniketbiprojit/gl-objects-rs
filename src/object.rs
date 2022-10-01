@@ -13,7 +13,7 @@ pub trait OpenGLObject {
     fn render(&mut self, gl: &Context);
     fn detach(&mut self, gl: &Context);
 
-    unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String) {
+    unsafe fn setup_shaders(&self, gl: &Context, program: &NativeProgram, source: String) {
         let shaders = ShaderData::new(source);
 
         let shader_sources = [
@@ -55,6 +55,7 @@ pub trait OpenGLObject {
     }
 
     unsafe fn setup_buffers(
+        &self,
         gl: &Context,
         vertices: &[f32],
         indices: &[u32],
