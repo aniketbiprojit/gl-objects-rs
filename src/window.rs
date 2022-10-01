@@ -1,8 +1,6 @@
-use glfw::Context;
 use glow::HasContext;
-use std::{ffi::c_void, primitive, sync::mpsc::channel};
 
-use crate::object::{self, OpenGLObject};
+use crate::{object::OpenGLObject, primitives::triangle::Triangle};
 
 pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
@@ -24,17 +22,7 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display(
-        &mut self,
-        setup_shaders: impl Fn(&glow::Context) -> glow::NativeProgram,
-        setup_buffers: impl Fn(
-            &glow::Context,
-        ) -> (
-            glow::NativeBuffer,
-            glow::NativeVertexArray,
-            glow::NativeBuffer,
-        ),
-    );
+    fn create_display(&mut self);
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
 }
 
@@ -116,17 +104,11 @@ impl Window<sdl2::Sdl, sdl2::video::Window> {
             let ctx = self.ctx.as_ref().unwrap();
             let window = self.internal_handle.as_ref().unwrap();
 
-            let program = gl.create_program().expect("Cannot create program");
+            let mut triangle = Triangle::new([0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32]);
 
-            // let program = crate::setup_shaders(&gl);
-            crate::primitives::triangle::Triangle::setup_shaders(
-                gl,
-                &program,
-                "resources/rectangle.shader".to_string(),
-            );
-            gl.use_program(Some(program));
+            triangle.attach(gl);
 
-            let (vbo, vao, ibo) = crate::setup_buffers(&gl);
+            // let (vbo, vao, ibo) = crate::setup_buffers(&gl);
             let mut event_pump = ctx.event_pump().unwrap();
 
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -142,32 +124,18 @@ impl Window<sdl2::Sdl, sdl2::video::Window> {
 
                 gl.clear(glow::COLOR_BUFFER_BIT);
 
-                gl.draw_arrays(glow::TRIANGLES, 0, 3);
+                triangle.render(gl);
+                // gl.draw_elements(glow::TRIANGLES, 4, glow::UNSIGNED_INT, 0);
 
                 window.gl_swap_window();
             }
-
-            // Clean up
-            gl.delete_program(program);
-            gl.delete_vertex_array(vao);
-            gl.delete_buffer(vbo);
-            gl.delete_buffer(ibo);
+            triangle.detach(gl);
         }
     }
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display(
-        &mut self,
-        setup_shaders: impl Fn(&glow::Context) -> glow::NativeProgram,
-        setup_buffers: impl Fn(
-            &glow::Context,
-        ) -> (
-            glow::NativeBuffer,
-            glow::NativeVertexArray,
-            glow::NativeBuffer,
-        ),
-    ) {
+    fn create_display(&mut self) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -204,42 +172,6 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         self.render();
 
         return;
-        //
-        // let program = setup_shaders(&gl);
-
-        // unsafe {
-        //     gl.use_program(Some(program));
-        // }
-        // unsafe {
-        //     let (vbo, vao, ibo) = setup_buffers(&gl);
-
-        //     gl.clear_color(0.1, 0.2, 0.3, 1.0);
-
-        //     'render: loop {
-        //         {
-        //             for event in event_pump.poll_iter() {
-        //                 if let sdl2::event::Event::Quit { .. } = event {
-        //                     break 'render;
-        //                 }
-        //             }
-        //         }
-
-        //         gl.clear(glow::COLOR_BUFFER_BIT);
-
-        //         gl.draw_arrays(glow::TRIANGLES, 0, 3);
-
-        //         window.gl_swap_window();
-        //     }
-
-        //     // Clean up
-        //     gl.delete_program(program);
-        //     gl.delete_vertex_array(vao);
-        //     gl.delete_buffer(vbo);
-        //     gl.delete_buffer(ibo);
-        // }
-        // self.ctx = Some(Box::new(ctx));
-        // self.internal_handle = Some(Box::new(window));
-        // self.gl = Some(Box::new(gl));
     }
 
     fn load_with(&mut self, window: &mut sdl2::video::Window, s: &str) -> *const std::ffi::c_void {
