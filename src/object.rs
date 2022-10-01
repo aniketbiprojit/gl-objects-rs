@@ -8,9 +8,15 @@ pub struct BufferData {
     pub ibo: glow::NativeBuffer,
 }
 
-pub trait OpenGLObject {
+#[derive(Debug)]
+pub enum TestingEvent {
+    WindowResize(i32, i32),
+    Ignore,
+}
+
+pub trait OpenGLObjectTrait {
     fn attach(&mut self, gl: &Context);
-    fn render(&mut self, gl: &Context);
+    fn render(&mut self, gl: &Context, event: &TestingEvent);
     fn detach(&mut self, gl: &Context);
 
     unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String)

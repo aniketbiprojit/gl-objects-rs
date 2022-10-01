@@ -1,8 +1,9 @@
 use crate::object::BufferData;
+use crate::object::TestingEvent;
 use glow::HasContext;
 use glow::NativeProgram;
 
-use crate::object::OpenGLObject;
+use crate::object::OpenGLObjectTrait;
 
 #[derive(Debug)]
 pub(crate) struct Triangle {
@@ -23,7 +24,7 @@ impl Triangle {
     }
 }
 
-impl OpenGLObject for Triangle {
+impl OpenGLObjectTrait for Triangle {
     fn attach(&mut self, gl: &glow::Context) {
         unsafe {
             let program = gl.create_program().expect("Cannot create program");
@@ -40,7 +41,7 @@ impl OpenGLObject for Triangle {
         }
     }
 
-    fn render(&mut self, gl: &glow::Context) {
+    fn render(&mut self, gl: &glow::Context, _event: &TestingEvent) {
         unsafe {
             gl.draw_elements(glow::TRIANGLES, 4, glow::UNSIGNED_INT, 0);
         }

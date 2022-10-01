@@ -2,7 +2,7 @@ use glfw::Context;
 use glow::HasContext;
 use std::sync::mpsc::channel;
 
-use crate::object::OpenGLObject;
+use crate::object::{OpenGLObjectTrait, TestingEvent};
 
 pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
@@ -24,13 +24,13 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>);
-    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>);
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>);
+    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>);
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
 }
 
 impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
-    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>) {
+    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
         if self.gl.is_none() {
             panic!("gl is none");
         }
@@ -55,32 +55,36 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
-        unsafe {
-            gl.clear_color(0.1, 0.2, 0.3, 1.0);
-        }
         while !window.should_close() {
             glfw.poll_events();
+            let mut test_event = TestingEvent::Ignore;
             for (_, event) in glfw::flush_messages(&receiver) {
-                println!("{:?}", event);
-
-                unsafe {
-                    gl.clear(glow::COLOR_BUFFER_BIT);
+                if let glfw::WindowEvent::Size(x, y) = event {
+                    test_event = TestingEvent::WindowResize(x, y);
                 }
-
-                for elem in objects.into_iter() {
-                    elem.attach(gl);
-
-                    elem.render(gl);
-                }
-                window.swap_buffers();
             }
+
+            unsafe {
+                gl.clear_color(0.1, 0.2, 0.3, 1.0);
+                gl.clear(glow::COLOR_BUFFER_BIT);
+            }
+            for elem in objects.into_iter() {
+                elem.attach(gl);
+                elem.render(gl, &test_event);
+            }
+
+            let (x, y) = window.get_framebuffer_size();
+            unsafe {
+                gl.viewport(0, 0, x, y);
+            }
+            window.swap_buffers();
         }
         for elem in objects.into_iter() {
             elem.detach(gl);
         }
     }
 
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>) {
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
         let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
         glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
@@ -100,12 +104,16 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             )
             .expect("Failed to create GLFW window.");
 
-        window.set_all_polling(true);
+        window.set_framebuffer_size_polling(true);
+        window.set_size_polling(true);
         window.make_current();
+
+        window.set_framebuffer_size_polling(true);
 
         let gl = unsafe { glow::Context::from_loader_function(|s| self.load_with(&mut window, s)) };
 
-        println!("{:?}", gl.version());
+        println!("GLFW: {:?}", gl.version());
+        glfw.set_swap_interval(glfw::SwapInterval::Adaptive);
 
         self.ctx = Some(Box::new(glfw));
         self.internal_handle = Some(Box::new(window));
@@ -120,7 +128,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObject>) {
+    fn create_display<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -143,7 +151,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         let gl_context = window.gl_create_context().unwrap();
         let gl = unsafe { glow::Context::from_loader_function(|s| self.load_with(&mut window, s)) };
 
-        println!("{:?}", gl.version());
+        println!("SDL {:?}", gl.version());
 
         window.gl_make_current(&gl_context).unwrap();
 
@@ -161,7 +169,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
     }
 
     // calling externally on SDL2 fails.
-    fn render(&mut self, objects: &mut Vec<&mut dyn OpenGLObject>) {
+    fn render(&mut self, objects: &mut Vec<&mut dyn OpenGLObjectTrait>) {
         if self.gl.is_none() {
             panic!("gl is none");
         }
@@ -179,10 +187,29 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let mut event_pump = ctx.event_pump().unwrap();
 
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
+            gl.viewport(
+                0,
+                0,
+                window.drawable_size().0 as i32,
+                window.drawable_size().1 as i32,
+            );
 
             'render: loop {
+                let mut test_event = TestingEvent::Ignore;
                 {
                     for event in event_pump.poll_iter() {
+                        if let sdl2::event::Event::Window { win_event, .. } = event {
+                            if let sdl2::event::WindowEvent::Resized(x, y) = win_event {
+                                gl.viewport(
+                                    0,
+                                    0,
+                                    window.drawable_size().0 as i32,
+                                    window.drawable_size().1 as i32,
+                                );
+                                test_event = TestingEvent::WindowResize(x, y);
+                            }
+                        }
+
                         if let sdl2::event::Event::Quit { .. } = event {
                             break 'render;
                         }
@@ -193,7 +220,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
                 for elem in objects.into_iter() {
                     elem.attach(gl);
-                    elem.render(gl);
+                    elem.render(gl, &test_event);
                 }
 
                 window.gl_swap_window();
