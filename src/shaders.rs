@@ -5,18 +5,19 @@ pub enum ShaderType {
     Fragment,
     Vertex,
 }
-struct Shader {
-    source: String,
-    shader_type: ShaderType,
+pub struct Shader {
+    pub source: String,
+    pub shader_type: ShaderType,
 }
 
-struct ShaderData {
-    source_path: String,
-    shaders: Vec<Shader>,
+pub struct ShaderData {
+    pub source_path: String,
+    pub vertex_shader: Shader,
+    pub fragment_shader: Shader,
 }
 
 impl ShaderData {
-    fn new(source_path: String) -> ShaderData {
+    pub fn new(source_path: String) -> ShaderData {
         #[cfg(target_os = "macos")]
         let glsl_version = "#version 410";
         #[cfg(not(target_os = "macos"))]
@@ -56,7 +57,14 @@ impl ShaderData {
 
         ShaderData {
             source_path,
-            shaders: Vec::new(),
+            vertex_shader: Shader {
+                source: vertex_shader,
+                shader_type: ShaderType::Vertex,
+            },
+            fragment_shader: Shader {
+                source: fragment_shader,
+                shader_type: ShaderType::Fragment,
+            },
         }
     }
 }
