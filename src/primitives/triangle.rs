@@ -28,10 +28,15 @@ impl OpenGLObject for Triangle {
         unsafe {
             let program = gl.create_program().expect("Cannot create program");
 
-            self.setup_shaders(gl, &program, self.source.clone());
+            Self::setup_shaders(gl, &program, self.source.clone());
             gl.use_program(Some(program));
-            self.buffers =
-                Some(self.setup_buffers(gl, &self.positions, &vec![0u32, 1, 2, 0], 2, 8));
+            self.buffers = Some(Self::setup_buffers(
+                gl,
+                &self.positions,
+                &vec![0u32, 1, 2, 0],
+                2,
+                8,
+            ));
         }
     }
 

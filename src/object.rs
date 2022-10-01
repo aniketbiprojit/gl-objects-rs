@@ -13,7 +13,10 @@ pub trait OpenGLObject {
     fn render(&mut self, gl: &Context);
     fn detach(&mut self, gl: &Context);
 
-    unsafe fn setup_shaders(&self, gl: &Context, program: &NativeProgram, source: String) {
+    unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String)
+    where
+        Self: Sized,
+    {
         let shaders = ShaderData::new(source);
 
         let shader_sources = [
@@ -55,13 +58,15 @@ pub trait OpenGLObject {
     }
 
     unsafe fn setup_buffers(
-        &self,
         gl: &Context,
         vertices: &[f32],
         indices: &[u32],
         vao_size: i32,
         vao_stride: i32,
-    ) -> BufferData {
+    ) -> BufferData
+    where
+        Self: Sized,
+    {
         let (vbo, vao, ibo) = {
             let triangle_vertices_u8: &[u8] = core::slice::from_raw_parts(
                 vertices.as_ptr() as *const u8,
