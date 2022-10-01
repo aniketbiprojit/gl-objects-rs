@@ -170,11 +170,9 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
     }
 
     fn load_with(&mut self, s: &str) -> *const std::ffi::c_void {
-        self.internal_handle
-            .as_mut()
-            .unwrap()
-            .subsystem()
-            .gl_get_proc_address(s) as _
+        let window = self.internal_handle.as_ref().unwrap();
+
+        window.subsystem().gl_get_proc_address(s) as _
     }
 
     // calling externally on SDL2 fails.
