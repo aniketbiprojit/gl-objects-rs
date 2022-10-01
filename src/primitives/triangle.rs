@@ -9,14 +9,16 @@ pub(crate) struct Triangle {
     positions: [f32; 6],
     program: Option<Box<NativeProgram>>,
     buffers: Option<BufferData>,
+    source: String,
 }
 
 impl Triangle {
-    pub(crate) fn new(positions: [f32; 6]) -> Self {
+    pub(crate) fn new(positions: [f32; 6], source: &str) -> Self {
         Self {
             positions,
             program: None,
             buffers: None,
+            source: source.to_string(),
         }
     }
 }
@@ -26,7 +28,7 @@ impl OpenGLObject for Triangle {
         unsafe {
             let program = gl.create_program().expect("Cannot create program");
 
-            self.setup_shaders(gl, &program, "resources/rectangle.shader".to_string());
+            self.setup_shaders(gl, &program, self.source.clone());
             gl.use_program(Some(program));
             self.buffers =
                 Some(self.setup_buffers(gl, &self.positions, &vec![0u32, 1, 2, 0], 2, 8));

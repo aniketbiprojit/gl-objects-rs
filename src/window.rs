@@ -55,10 +55,6 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
-        for elem in objects.into_iter() {
-            elem.attach(gl);
-        }
-
         unsafe {
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
         }
@@ -72,6 +68,8 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
                 }
 
                 for elem in objects.into_iter() {
+                    elem.attach(gl);
+
                     elem.render(gl);
                 }
                 window.swap_buffers();
@@ -173,10 +171,6 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let ctx = self.ctx.as_ref().unwrap();
             let window = self.internal_handle.as_ref().unwrap();
 
-            for elem in objects.into_iter() {
-                elem.attach(gl);
-            }
-
             let mut event_pump = ctx.event_pump().unwrap();
 
             gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -193,6 +187,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 gl.clear(glow::COLOR_BUFFER_BIT);
 
                 for elem in objects.into_iter() {
+                    elem.attach(gl);
                     elem.render(gl);
                 }
 
