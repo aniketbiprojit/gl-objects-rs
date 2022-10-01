@@ -22,14 +22,12 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             gl: None,
         }
     }
-    fn create_display(&mut self);
+    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ());
     fn load_with(&mut self, window: &mut WindowHandle, s: &str) -> *const std::ffi::c_void;
-    // fn (&mut self);
-    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ());
 }
 
 impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
-    fn create_display(&mut self) {
+    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ()) {
         let mut glfw: glfw::Glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
         glfw.window_hint(glfw::WindowHint::ContextVersionMajor(4));
@@ -52,19 +50,15 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         window.set_all_polling(true);
         window.make_current();
 
-        let gl = unsafe { glow::Context::from_loader_function(|s| self.load_with(&mut window, s)) };
+        self.gl = unsafe {
+            Some(glow::Context::from_loader_function(|s| {
+                self.load_with(&mut window, s)
+            }))
+        };
+
+        let gl = &mut &self.gl.take().unwrap();
 
         println!("{:?}", gl.version());
-
-        self.ctx = Some(glfw);
-        self.internal_handle = Some(window);
-        self.gl = Some(gl);
-    }
-
-    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ()) {
-        let mut glfw = self.ctx.take().unwrap();
-        let mut window = self.internal_handle.take().unwrap();
-
         let (sender, receiver): (
             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
             std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
@@ -76,8 +70,6 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
-        let gl = &mut self.gl.take().unwrap();
-
         while !window.should_close() {
             glfw.poll_events();
             for (_, event) in glfw::flush_messages(&receiver) {
@@ -86,6 +78,9 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
                 window.swap_buffers();
             }
         }
+
+        self.ctx = Some(glfw);
+        self.internal_handle = Some(window);
     }
 
     fn load_with(&mut self, window: &mut glfw::Window, s: &str) -> *const std::ffi::c_void {
@@ -94,7 +89,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 }
 
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
-    fn create_display(&mut self) {
+    fn create_display(&mut self, render: impl Fn(&mut &glow::Context) -> ()) {
         let ctx = sdl2::init().unwrap();
 
         let video_subsystem = ctx.video().unwrap();
@@ -126,9 +121,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         self.ctx = Some(ctx);
         self.internal_handle = Some(window);
         self.gl = Some(gl);
-    }
 
-    fn event_loop(&mut self, render: impl Fn(&mut glow::Context) -> ()) {
         let mut event_pump = self
             .ctx
             .as_ref()
@@ -136,12 +129,16 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             .event_pump()
             .unwrap();
 
-        let gl = &mut self.gl.take().unwrap();
+        let gl = &mut &self.gl.take().unwrap();
 
         'event_loop: loop {
             for event in event_pump.poll_iter() {
                 println!("{:?}", event);
 
+                // unsafe {
+                //     gl.clear_color(0.2, 0.4, 0.8, 1.0);
+                //     gl.clear(glow::COLOR_BUFFER_BIT);
+                // }
                 render(gl);
 
                 self.internal_handle

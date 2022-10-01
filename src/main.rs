@@ -18,12 +18,11 @@ fn main() {
     // #[cfg(not(feature = "use_default"))]
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(width, height, title);
 
-    handle.create_display();
+    handle.create_display(render);
 
-    handle.event_loop(render);
 }
 
-fn render(gl: &mut glow::Context) {
+fn render(gl: &mut &glow::Context) {
     unsafe {
         gl.clear_color(0.2, 0.4, 0.8, 1.0);
         gl.clear(glow::COLOR_BUFFER_BIT);
