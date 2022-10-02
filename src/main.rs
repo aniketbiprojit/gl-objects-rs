@@ -9,18 +9,6 @@ mod primitives;
 pub mod shaders;
 mod window;
 
-fn is_sdl() -> bool {
-    #[cfg(feature = "sdl2")]
-    {
-        return true;
-    }
-
-    #[cfg(not(feature = "sdl2"))]
-    {
-        return false;
-    }
-}
-
 fn main() {
     println!("Hello, world!");
 
@@ -34,7 +22,7 @@ fn main() {
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 
     let objects: &mut Vec<&mut dyn object::OpenGLObjectTrait> = &mut vec![];
-    let sdl = is_sdl();
+    let sdl = false; // is_sdl();
 
     #[cfg(feature = "sdl2")]
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
