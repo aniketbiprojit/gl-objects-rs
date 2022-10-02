@@ -1,7 +1,14 @@
 [package]
+description = "A gl_object libray for quick use."
+documentation = "https://github.com/aniketbiprojit/gl-objects-rs"
+homepage = "https://github.com/aniketbiprojit/gl-objects-rs"
+repository = "https://github.com/aniketbiprojit/gl-objects-rs"
+
+license-file = "LICENSE"
+
 edition = "2021"
 name = "gl_object"
-version = "0.1.0"
+version = "0.0.1-alpha"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -22,6 +29,11 @@ path = "src/lib.rs"
 [[bin]]
 name = "gl_object_bin"
 path = "src/main.rs"
+
+exclude = [
+  "examples",
+  "resources",
+]
 
 [features]
 default = []

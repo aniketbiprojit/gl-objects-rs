@@ -73,8 +73,6 @@ impl OpenGLObjectTrait for Rectangle {
                 Mat4::orthographic_opengl(0.0, *x as f32, *y as f32, 0.0, -1.0, 1.0);
         }
 
-        self.move_model(0.5, 0.5, 0.0);
-
         unsafe {
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
         }
