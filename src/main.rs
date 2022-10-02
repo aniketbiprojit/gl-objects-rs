@@ -9,6 +9,18 @@ mod primitives;
 pub mod shaders;
 mod window;
 
+fn is_sdl() -> bool {
+    #[cfg(feature = "sdl2")]
+    {
+        return true;
+    }
+
+    #[cfg(feature = "default")]
+    {
+        return false;
+    }
+}
+
 fn main() {
     println!("Hello, world!");
 
@@ -17,14 +29,14 @@ fn main() {
 
     let title = "Window".to_string();
 
-    // #[cfg(feature = "use_glfw")]
-    let handle =
+    #[cfg(feature = "default")]
+    let mut handle =
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 
     let objects: &mut Vec<&mut dyn object::OpenGLObjectTrait> = &mut vec![];
-    let sdl = true;
+    let sdl = is_sdl();
 
-    // #[cfg(not(feature = "use_default"))]
+    #[cfg(feature = "sdl2")]
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
         width,
         height,
