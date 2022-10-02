@@ -43,11 +43,11 @@ fn main() {
         format!("SDL {}", title.clone()),
     );
 
-    let rectangle1 = &mut Rectangle::new(200, 200, "resources/rectangle2.shader");
+    let rectangle1 = &mut Rectangle::new(200, 200, "resources/shader_with_matrix.shader");
 
     let triangle2 = &mut triangle::Triangle::new(
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
-        "resources/rectangle1.shader",
+        "resources/shader_with_uniform.shader",
     );
     objects.push(rectangle1);
     objects.push(triangle2);

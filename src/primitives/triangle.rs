@@ -6,7 +6,7 @@ use glow::NativeProgram;
 use crate::object::OpenGLObjectTrait;
 
 #[derive(Debug)]
-pub(crate) struct Triangle {
+pub struct Triangle {
     positions: [f32; 6],
     program: Option<Box<NativeProgram>>,
     buffers: Option<BufferData>,
@@ -14,7 +14,7 @@ pub(crate) struct Triangle {
 }
 
 impl Triangle {
-    pub(crate) fn new(positions: [f32; 6], source: &str) -> Self {
+    pub fn new(positions: [f32; 6], source: &str) -> Self {
         Self {
             positions,
             program: None,

@@ -9,7 +9,7 @@ use glow::HasContext;
 use glow::NativeProgram;
 
 #[derive(Debug)]
-pub(crate) struct Rectangle {
+pub struct Rectangle {
     width: u32,
     height: u32,
     program: Option<Box<NativeProgram>>,
@@ -19,7 +19,7 @@ pub(crate) struct Rectangle {
 }
 
 impl Rectangle {
-    pub(crate) fn new(width: u32, height: u32, source: &str) -> Self {
+    pub fn new(width: u32, height: u32, source: &str) -> Self {
         Self {
             height: height,
             width: width,
