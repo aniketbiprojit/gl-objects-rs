@@ -1,14 +1,49 @@
 # gl-objects-rs
 
 
+Usage as Library:
+
+## For Primitives
+
+```rs
+
+let rectangle = &mut Rectangle::new(200 //width, 
+                                    200, // height
+                                    "<path-to-glsl-shader>.shader");
+'render: loop { 
+    rectangle.attach(&gl);
+    if key == "space" {
+        rectangle.move_model(0,2.0,0.0);
+    }
+    rectangle.render(&gl);
+}
+rectangle.detach(&gl);
+```
+
+## For Shaders
+
+Note: Automatically adds GLSL version.
+
+```rs
+let shaders = ShaderData::new(source);
+
+let shader_sources = [
+    (VERTEX_SHADER_INT, shaders.vertex_shader.source),
+    (VERTEX_SHADER_INT, shaders.fragment_shader.source),
+];
+```
+
 ## Run with glfw
 
+````sh
 cargo run
+```
 
 ## Run with sdl2
 
+```sh
 cargo run --features sdl2
-
+```
 
 
 Setting up SDL2
