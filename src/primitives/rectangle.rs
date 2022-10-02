@@ -1,7 +1,5 @@
 use crate::object::BufferData;
 use crate::object::OpenGLObjectTrait;
-use crate::object::OpenGlMvpTrait;
-use crate::object::TestingEvent;
 use crate::object::MVP;
 use gfx_maths::Mat4;
 use gfx_maths::Vec3;
@@ -69,12 +67,7 @@ impl OpenGLObjectTrait for Rectangle {
         }
     }
 
-    fn render(&mut self, gl: &glow::Context, event: &TestingEvent) {
-        if let TestingEvent::WindowResize(x, y) = event {
-            self.matrix.projection =
-                Mat4::orthographic_opengl(0.0, *x as f32, *y as f32, 0.0, -1.0, 1.0);
-        }
-
+    fn render(&mut self, gl: &glow::Context) {
         unsafe {
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
         }
@@ -87,10 +80,15 @@ impl OpenGLObjectTrait for Rectangle {
             }
         };
     }
-}
 
-impl OpenGlMvpTrait for Rectangle {
     fn move_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32) {
         self.matrix.model += Vec3::new(movement_x, movement_y, movement_z);
+    }
+
+    fn window_resize(&mut self, _draw_size: [f32; 2], size: [f32; 2]) {
+        {
+            self.matrix.projection =
+                Mat4::orthographic_opengl(0.0, size[0] as f32, size[1] as f32, 0.0, -1.0, 1.0);
+        }
     }
 }

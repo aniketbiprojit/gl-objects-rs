@@ -43,7 +43,7 @@ impl OpenGLObjectTrait for ImguiCtx {
         ];
     }
 
-    fn render(&mut self, _gl: &glow::Context, _event: &crate::object::TestingEvent) {
+    fn render(&mut self, _gl: &glow::Context) {
         let ui = self.imgui_ctx.frame();
         ui.text(format!("{:?}", "Some Data"));
         ui.text("More Data");
@@ -52,5 +52,19 @@ impl OpenGLObjectTrait for ImguiCtx {
 
     fn detach(&mut self, _gl: &glow::Context) {
         drop(&self.imgui_ctx);
+    }
+
+    fn move_model(&mut self, _movement_x: f32, _movement_y: f32, _movement_z: f32) {}
+
+    fn window_resize(&mut self, draw_size: [f32; 2], size: [f32; 2]) {
+        let io = self.imgui_ctx.io_mut();
+        let (win_w, win_h) = (size[0], size[1]);
+        let (draw_w, draw_h) = (draw_size[0], draw_size[1]);
+
+        io.display_size = [win_w as f32, win_h as f32];
+        io.display_framebuffer_scale = [
+            (draw_w as f32) / (win_w as f32),
+            (draw_h as f32) / (win_h as f32),
+        ];
     }
 }

@@ -1,5 +1,4 @@
 use crate::object::BufferData;
-use crate::object::TestingEvent;
 use glow::HasContext;
 use glow::NativeProgram;
 
@@ -41,7 +40,7 @@ impl OpenGLObjectTrait for Triangle {
         }
     }
 
-    fn render(&mut self, gl: &glow::Context, _event: &TestingEvent) {
+    fn render(&mut self, gl: &glow::Context) {
         unsafe {
             gl.draw_elements(glow::TRIANGLES, 4, glow::UNSIGNED_INT, 0);
         }
@@ -54,4 +53,8 @@ impl OpenGLObjectTrait for Triangle {
             }
         };
     }
+
+    fn move_model(&mut self, _movement_x: f32, _movement_y: f32, _movement_z: f32) {}
+
+    fn window_resize(&mut self, _draw_size: [f32; 2], _size: [f32; 2]) {}
 }
