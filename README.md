@@ -12,6 +12,11 @@ let rectangle = &mut Rectangle::new(200 //width,
                                     "<path-to-glsl-shader>.shader");
 'render: loop { 
     rectangle.attach(&gl);
+
+    if window.resized == true {
+        rectangle.window_resize(draw_size,size);
+    }
+
     if key == "space" {
         rectangle.move_model(0,2.0,0.0);
     }
