@@ -12,7 +12,7 @@ use glow::NativeProgram;
 pub struct Rectangle {
     width: u32,
     height: u32,
-    program: Option<Box<NativeProgram>>,
+    pub program: Option<Box<NativeProgram>>,
     buffers: Option<BufferData>,
     source: String,
     matrix: MVP,
@@ -21,8 +21,8 @@ pub struct Rectangle {
 impl Rectangle {
     pub fn new(width: u32, height: u32, source: &str) -> Self {
         Self {
-            height: height,
-            width: width,
+            height,
+            width,
             program: None,
             buffers: None,
             source: source.to_string(),
@@ -64,6 +64,8 @@ impl OpenGLObjectTrait for Rectangle {
             let proj_matrix = gl.get_uniform_location(program, "u_proj_matrix");
 
             gl.uniform_matrix_4_f32_slice(proj_matrix.as_ref(), false, &matrix.values);
+
+            self.program = Some(Box::new(program));
         }
     }
 
