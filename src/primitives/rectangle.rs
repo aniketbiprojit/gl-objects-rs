@@ -1,33 +1,12 @@
 use crate::object::BufferData;
 use crate::object::OpenGLObjectTrait;
+use crate::object::OpenGlMvpTrait;
 use crate::object::TestingEvent;
+use crate::object::MVP;
 use gfx_maths::Mat4;
+use gfx_maths::Vec3;
 use glow::HasContext;
 use glow::NativeProgram;
-
-#[derive(Debug)]
-pub struct MVP {
-    model: Mat4,
-    view: Mat4,
-    projection: Mat4,
-}
-
-impl MVP {
-    pub fn new(screen_width: u32, screen_height: u32) -> Self {
-        Self {
-            projection: Mat4::orthographic_opengl(
-                0.0,
-                screen_width as f32,
-                screen_height as f32,
-                0.0,
-                -1.0,
-                1.0,
-            ),
-            view: Mat4::identity(),
-            model: Mat4::identity(),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub(crate) struct Rectangle {
@@ -79,7 +58,8 @@ impl OpenGLObjectTrait for Rectangle {
                 8,
             ));
 
-            let matrix = self.matrix.projection * self.matrix.view * self.matrix.model;
+            let matrix =
+                self.matrix.projection * self.matrix.view * Mat4::translate(self.matrix.model);
 
             let proj_matrix = gl.get_uniform_location(program, "u_proj_matrix");
 
@@ -93,6 +73,8 @@ impl OpenGLObjectTrait for Rectangle {
                 Mat4::orthographic_opengl(0.0, *x as f32, *y as f32, 0.0, -1.0, 1.0);
         }
 
+        self.move_model(0.5, 0.5, 0.0);
+
         unsafe {
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_INT, 0);
         }
@@ -104,5 +86,11 @@ impl OpenGLObjectTrait for Rectangle {
                 gl.delete_program(**self.program.as_ref().unwrap());
             }
         };
+    }
+}
+
+impl OpenGlMvpTrait for Rectangle {
+    fn move_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32) {
+        self.matrix.model += Vec3::new(movement_x, movement_y, movement_z);
     }
 }

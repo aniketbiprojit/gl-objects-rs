@@ -1,4 +1,5 @@
 use crate::shaders::ShaderData;
+use gfx_maths::{Mat4, Vec3};
 use glow::{Context, HasContext, NativeProgram};
 
 #[derive(Debug)]
@@ -12,6 +13,38 @@ pub struct BufferData {
 pub enum TestingEvent {
     WindowResize(i32, i32),
     Ignore,
+}
+
+#[derive(Debug)]
+pub struct MVP {
+    pub model: Vec3,
+    pub view: Mat4,
+    pub projection: Mat4,
+}
+
+impl MVP {
+    pub fn new(screen_width: u32, screen_height: u32) -> Self {
+        Self {
+            projection: Mat4::orthographic_opengl(
+                0.0,
+                screen_width as f32,
+                screen_height as f32,
+                0.0,
+                -1.0,
+                1.0,
+            ),
+            view: Mat4::identity(),
+            model: Vec3::new(0.0, 0.0, 0.0),
+        }
+    }
+}
+
+pub trait OpenGlMvpTrait {
+    fn get_movement_model(movement_x: f32, movement_y: f32, movement_z: f32) -> Mat4 {
+        Mat4::translate(Vec3::new(movement_x, movement_y, movement_z))
+    }
+
+    fn move_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32);
 }
 
 pub trait OpenGLObjectTrait {

@@ -12,8 +12,8 @@ mod window;
 fn main() {
     println!("Hello, world!");
 
-    let width = 800u32;
-    let height = 600u32;
+    let width = 800_u32;
+    let height = 600_u32;
 
     let title = "Window".to_string();
 
