@@ -8,8 +8,8 @@ use glow::NativeProgram;
 
 #[derive(Debug)]
 pub struct Rectangle {
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
     pub program: Option<Box<NativeProgram>>,
     buffers: Option<BufferData>,
     source: String,
@@ -41,17 +41,17 @@ impl OpenGLObjectTrait for Rectangle {
                 0f32,
                 0f32,
                 0f32,
-                self.width as f32,
+                self.height as f32,
                 self.width as f32,
                 self.height as f32,
-                self.height as f32,
+                self.width as f32,
                 0f32,
             ];
 
             self.buffers = Some(Self::setup_buffers(
                 gl,
                 &vertices,
-                &vec![0u32, 1, 2, 2, 3, 0],
+                &vec![0u32, 1, 2, 2, 3],
                 2,
                 8,
             ));
