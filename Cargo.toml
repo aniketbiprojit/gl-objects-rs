@@ -19,8 +19,10 @@ sdl2-sys = "0.35.2"
 default = []
 image = ["sdl2-sys/image"]
 mixer = ["sdl2-sys/mixer"]
-ttf = ["sdl2-sys/ttf"]
 
+sdl2 = []
+
+ttf = ["sdl2-sys/ttf"]
 # Use hidapi support in SDL. Only 2.0.12 and after
 bundled = ["sdl2-sys/bundled"]
 static-link = ["sdl2-sys/static-link"]
