@@ -15,7 +15,7 @@ fn is_sdl() -> bool {
         return true;
     }
 
-    #[cfg(feature = "default")]
+    #[cfg(not(feature = "sdl2"))]
     {
         return false;
     }
@@ -29,7 +29,7 @@ fn main() {
 
     let title = "Window".to_string();
 
-    #[cfg(feature = "default")]
+    #[cfg(not(feature = "sdl2"))]
     let mut handle =
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 

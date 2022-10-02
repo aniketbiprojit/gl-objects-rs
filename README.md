@@ -1,6 +1,16 @@
 # gl-objects-rs
 
 
+## Run with glfw
+
+cargo run
+
+## Run with sdl2
+
+cargo run --features sdl2
+
+
+
 Setting up SDL2
 
 ### macOS
