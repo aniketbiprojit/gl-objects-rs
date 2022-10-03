@@ -29,6 +29,15 @@ impl Rectangle {
     }
 }
 
+impl Rectangle {
+    pub fn is_in_bounding_box(&self, x: i32, y: i32) -> bool {
+        if x >= 0 && x as f32 <= self.width as f32 && y >= 0 && y as f32 <= self.height as f32 {
+            return true;
+        }
+        false
+    }
+}
+
 impl OpenGLObjectTrait for Rectangle {
     fn attach(&mut self, gl: &glow::Context) {
         unsafe {
