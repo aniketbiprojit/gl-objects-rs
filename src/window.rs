@@ -11,6 +11,9 @@ pub struct Window<WindowContext, WindowHandle> {
     pub ctx: Option<Box<WindowContext>>,
     pub internal_handle: Option<Box<WindowHandle>>,
     pub gl: Option<Box<glow::Context>>,
+
+    // sdl2 specific
+    gl_context: Option<Box<sdl2::video::GLContext>>,
 }
 
 pub trait WindowTrait<WindowContext, WindowHandle> {
@@ -22,6 +25,7 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             ctx: None,
             internal_handle: None,
             gl: None,
+            gl_context: None,
         }
     }
     fn create_display<'a>(&mut self);
@@ -57,10 +61,15 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
         while !window.should_close() {
             glfw.poll_events();
-            let mut test_event = TestingEvent::Ignore;
+            let mut test_event = None;
             for (_, event) in glfw::flush_messages(&receiver) {
                 if let glfw::WindowEvent::Size(x, y) = event {
-                    test_event = TestingEvent::WindowResize(x, y);
+                    test_event = Some(TestingEvent::new(
+                        x,
+                        y,
+                        window.get_framebuffer_size().0 as i32,
+                        window.get_framebuffer_size().1 as i32,
+                    ));
                 }
             }
 
@@ -70,7 +79,15 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             }
             for elem in objects.into_iter() {
                 elem.attach(gl);
-                elem.render(gl, &test_event);
+
+                if test_event.is_some() {
+                    let sizes = test_event.as_ref().unwrap();
+                    elem.window_resize(
+                        [sizes.window_draw_resize[0], sizes.window_draw_resize[1]],
+                        [sizes.window_resize[0], sizes.window_resize[1]],
+                    )
+                }
+                elem.render(gl);
             }
 
             let (x, y) = window.get_framebuffer_size();
@@ -162,6 +179,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
         window.gl_make_current(&gl_context).unwrap();
 
         window.subsystem().gl_set_swap_interval(1).unwrap();
+        self.gl_context = Some(Box::new(gl_context));
 
         self.ctx = Some(Box::new(ctx));
         self.internal_handle = Some(Box::new(window));
@@ -190,9 +208,10 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let gl = self.gl.as_ref().unwrap();
             let ctx = self.ctx.as_ref().unwrap();
             let window = self.internal_handle.as_ref().unwrap();
-            let gl_context = window.gl_create_context().unwrap();
 
-            window.gl_make_current(&gl_context).unwrap();
+            window
+                .gl_make_current(&self.gl_context.as_ref().unwrap())
+                .unwrap();
 
             let mut event_pump = ctx.event_pump().unwrap();
 
@@ -204,12 +223,8 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 window.drawable_size().1 as i32,
             );
 
-            let imgui_ctx = &mut crate::imgui_ctx::ImguiCtx::new(|s| -> *const std::ffi::c_void {
-                window.subsystem().gl_get_proc_address(s) as _
-            });
-
             'render: loop {
-                let mut test_event = TestingEvent::Ignore;
+                let mut test_event = None;
                 {
                     for event in event_pump.poll_iter() {
                         if let sdl2::event::Event::Window { win_event, .. } = event {
@@ -220,7 +235,12 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                                     window.drawable_size().0 as i32,
                                     window.drawable_size().1 as i32,
                                 );
-                                test_event = TestingEvent::WindowResize(x, y);
+                                test_event = Some(TestingEvent::new(
+                                    x,
+                                    y,
+                                    window.drawable_size().0 as i32,
+                                    window.drawable_size().1 as i32,
+                                ));
                             }
                         }
 
@@ -234,17 +254,23 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
                 for elem in objects.into_iter() {
                     elem.attach(gl);
-                    elem.render(gl, &test_event);
+
+                    if test_event.is_some() {
+                        let sizes = test_event.as_ref().unwrap();
+                        elem.window_resize(
+                            [sizes.window_draw_resize[0], sizes.window_draw_resize[1]],
+                            [sizes.window_resize[0], sizes.window_resize[1]],
+                        )
+                    }
+
+                    elem.render(gl);
                 }
-                imgui_ctx.attach(gl);
-                imgui_ctx.render(gl, &test_event);
 
                 window.gl_swap_window();
             }
             for elem in objects.into_iter() {
                 elem.detach(gl);
             }
-            imgui_ctx.detach(gl);
         }
     }
 }

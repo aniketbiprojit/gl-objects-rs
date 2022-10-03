@@ -10,9 +10,24 @@ pub struct BufferData {
 }
 
 #[derive(Debug)]
-pub enum TestingEvent {
-    WindowResize(i32, i32),
-    Ignore,
+pub struct TestSize {
+    pub x: i32,
+    pub y: i32,
+}
+
+#[derive(Debug)]
+pub struct TestingEvent {
+    pub window_resize: [f32; 2],
+    pub window_draw_resize: [f32; 2],
+}
+
+impl TestingEvent {
+    pub fn new(size_x: i32, size_y: i32, draw_size_x: i32, draw_size_y: i32) -> Self {
+        Self {
+            window_resize: [size_x as f32, size_y as f32],
+            window_draw_resize: [draw_size_x as f32, draw_size_y as f32],
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -39,18 +54,20 @@ impl MVP {
     }
 }
 
-pub trait OpenGlMvpTrait {
-    fn get_movement_model(movement_x: f32, movement_y: f32, movement_z: f32) -> Mat4 {
+pub trait OpenGLObjectTrait {
+    fn attach(&mut self, gl: &Context);
+    fn render(&mut self, gl: &Context);
+    fn detach(&mut self, gl: &Context);
+
+    fn get_movement_model(movement_x: f32, movement_y: f32, movement_z: f32) -> Mat4
+    where
+        Self: Sized,
+    {
         Mat4::translate(Vec3::new(movement_x, movement_y, movement_z))
     }
 
     fn move_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32);
-}
-
-pub trait OpenGLObjectTrait {
-    fn attach(&mut self, gl: &Context);
-    fn render(&mut self, gl: &Context, event: &TestingEvent);
-    fn detach(&mut self, gl: &Context);
+    fn window_resize(&mut self, draw_size: [f32; 2], size: [f32; 2]);
 
     unsafe fn setup_shaders(gl: &Context, program: &NativeProgram, source: String)
     where

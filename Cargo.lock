@@ -176,8 +176,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "gl-template"
-version = "0.1.0"
+name = "gl_generator"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a95dfc23a2b4a9a2f5ab41d194f8bfda3cabec42af4e39f08c339eb2a0c124d"
+dependencies = [
+ "khronos_api",
+ "log",
+ "xml-rs",
+]
+
+[[package]]
+name = "gl_object"
+version = "0.0.3"
 dependencies = [
  "gfx-maths",
  "glfw",
@@ -187,17 +198,6 @@ dependencies = [
  "imgui-opengl-renderer",
  "sdl2",
  "sdl2-sys",
-]
-
-[[package]]
-name = "gl_generator"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a95dfc23a2b4a9a2f5ab41d194f8bfda3cabec42af4e39f08c339eb2a0c124d"
-dependencies = [
- "khronos_api",
- "log",
- "xml-rs",
 ]
 
 [[package]]
