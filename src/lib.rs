@@ -18,6 +18,7 @@ pub fn glfw_example() {
     handle.render(&mut vec![rectangle])
 }
 
+#[cfg(feature = "sdl2")]
 pub fn sdl2_example() {
     let mut handle = Window::<sdl2::Sdl, sdl2::video::Window>::new(
         800,
