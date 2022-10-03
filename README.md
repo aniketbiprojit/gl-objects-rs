@@ -40,7 +40,7 @@ let shader_sources = [
 
 ## Run with glfw
 
-````sh
+```sh
 cargo run
 ```
 
