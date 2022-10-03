@@ -13,6 +13,7 @@ pub struct Window<WindowContext, WindowHandle> {
     pub gl: Option<Box<glow::Context>>,
 
     // sdl2 specific
+    #[cfg(feature = "sdl2")]
     gl_context: Option<Box<sdl2::video::GLContext>>,
 }
 
@@ -25,6 +26,7 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             ctx: None,
             internal_handle: None,
             gl: None,
+            #[cfg(feature = "sdl2")]
             gl_context: None,
         }
     }
@@ -148,6 +150,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
     }
 }
 
+#[cfg(feature = "sdl2")]
 impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::video::Window> {
     fn create_display<'a>(&mut self) {
         let ctx = sdl2::init().unwrap();
