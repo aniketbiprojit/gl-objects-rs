@@ -42,12 +42,14 @@ let shader_sources = [
 
 ```sh
 cargo run
+cargo run --example glfw
 ```
 
 ## Run with sdl2
 
 ```sh
 cargo run --features sdl2
+cargo run --example sdl2 --features sdl2
 ```
 
 
@@ -72,6 +74,6 @@ Add this line to your `~/.zshenv` or `~/.bash_profile` depending on whether you 
 export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
 ```
 
-### Linux and Windos
+### Linux and Windows
 
 <a href="https://github.com/Rust-SDL2/rust-sdl2/blob/master/README.md">Check out docs</a>

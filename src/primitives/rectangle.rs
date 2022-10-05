@@ -13,7 +13,7 @@ pub struct Rectangle {
     pub program: Option<Box<NativeProgram>>,
     buffers: Option<BufferData>,
     source: String,
-    matrix: MVP,
+    pub matrix: MVP,
 }
 
 impl Rectangle {
