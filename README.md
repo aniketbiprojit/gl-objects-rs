@@ -1,5 +1,8 @@
 # gl-objects-rs
 
+[![crates](https://img.shields.io/crates/v/gl_object.svg?style=for-the-badge&label=gl_object&color=brightgreen)](https://crates.io/crates/gl_object)
+![LICENSE](https://img.shields.io/badge/license-AGPL%202.0-blue.svg?style=for-the-badge)
+
 
 Usage as Library:
 
@@ -77,3 +80,8 @@ export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
 ### Linux and Windows
 
 <a href="https://github.com/Rust-SDL2/rust-sdl2/blob/master/README.md">Check out docs</a>
+
+
+### Sponsor
+
+[![Become a patron](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://www.patreon.com/aniketbiprojit)
