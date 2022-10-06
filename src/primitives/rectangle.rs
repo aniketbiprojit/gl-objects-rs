@@ -31,7 +31,13 @@ impl Rectangle {
 
 impl Rectangle {
     pub fn is_in_bounding_box(&self, x: i32, y: i32) -> bool {
-        if x >= 0 && x as f32 <= self.width as f32 && y >= 0 && y as f32 <= self.height as f32 {
+        let data = self.matrix.view * self.matrix.model;
+        println!("{},{},{:?}", x, y, data);
+        if x >= data.x as i32
+            && x as f32 <= data.x as f32 + self.width as f32
+            && y >= data.y as i32
+            && y as f32 <= data.y as f32 + self.height as f32
+        {
             return true;
         }
         false
@@ -92,6 +98,10 @@ impl OpenGLObjectTrait for Rectangle {
 
     fn move_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32) {
         self.matrix.model += Vec3::new(movement_x, movement_y, movement_z);
+    }
+
+    fn set_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32) {
+        self.matrix.model = Vec3::new(movement_x, movement_y, movement_z);
     }
 
     fn window_resize(&mut self, _draw_size: [f32; 2], size: [f32; 2]) {

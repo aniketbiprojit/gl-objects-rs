@@ -67,4 +67,6 @@ impl OpenGLObjectTrait for ImguiCtx {
             (draw_h as f32) / (win_h as f32),
         ];
     }
+
+    fn set_model(&mut self, _movement_x: f32, _movement_y: f32, _movement_z: f32) {}
 }

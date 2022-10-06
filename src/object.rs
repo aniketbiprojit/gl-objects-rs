@@ -155,4 +155,6 @@ pub trait OpenGLObjectTrait {
         };
         BufferData { vbo, vao, ibo }
     }
+
+    fn set_model(&mut self, movement_x: f32, movement_y: f32, movement_z: f32);
 }

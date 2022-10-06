@@ -57,4 +57,6 @@ impl OpenGLObjectTrait for Triangle {
     fn move_model(&mut self, _movement_x: f32, _movement_y: f32, _movement_z: f32) {}
 
     fn window_resize(&mut self, _draw_size: [f32; 2], _size: [f32; 2]) {}
+
+    fn set_model(&mut self, _movement_x: f32, _movement_y: f32, _movement_z: f32) {}
 }
