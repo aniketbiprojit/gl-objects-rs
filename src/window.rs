@@ -1,8 +1,7 @@
 use glfw::Context;
 use glium::Surface;
 use glow::HasContext;
-use std::borrow::Borrow;
-use std::rc;
+
 use std::sync::mpsc::channel;
 use std::{cell::RefCell, rc::Rc};
 use takeable_option::Takeable;
@@ -65,7 +64,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
-        while true {
+        while !window.should_close() || true {
             if window.should_close() {
                 println!("rendering {},{}", window.should_close(), true);
 
