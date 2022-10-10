@@ -322,7 +322,6 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
                 unsafe fn get_proc_address(&self, symbol: &str) -> *const std::os::raw::c_void {
                     let window = &*self.gl_window;
-
                     window.subsystem().gl_get_proc_address(symbol) as _
                 }
 
@@ -367,8 +366,13 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 window.drawable_size().0 as i32,
                 window.drawable_size().1 as i32,
             );
-
+            let mut frame_count = 0;
+            let time = std::time::Instant::now();
             'render: loop {
+                println!(
+                    "frames per second: {}",
+                    frame_count as f32 / time.elapsed().as_secs_f32()
+                );
                 let mut test_event = None;
                 {
                     for event in event_pump.poll_iter() {
@@ -420,6 +424,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 }
 
                 // window.gl_swap_window();
+                frame_count += 1;
                 target.finish().unwrap();
             }
             for elem in objects.into_iter() {
