@@ -13,7 +13,7 @@ pub struct Window<WindowContext, WindowHandle> {
     pub height: u32,
     pub title: String,
     pub ctx: Option<Box<WindowContext>>,
-    pub internal_handle: Rc<RefCell<Takeable<WindowHandle>>>,
+    pub internal_handle: Option<*mut WindowHandle>,
     pub gl: Option<Box<glow::Context>>,
     pub frame: Rc<RefCell<Takeable<glium::Frame>>>,
     // sdl2 specific
@@ -28,7 +28,7 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
             height,
             title: format!("{}", title),
             ctx: None,
-            internal_handle: Rc::new(RefCell::new(Takeable::new_empty())),
+            internal_handle: None,
             frame: Rc::new(RefCell::new(Takeable::new_empty())),
             gl: None,
             #[cfg(feature = "sdl2")]
@@ -51,7 +51,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         }
         let gl = self.gl.as_ref().unwrap();
         let glfw = self.ctx.as_mut().unwrap();
-        let mut window = Takeable::take(&mut self.internal_handle.borrow_mut());
+        let window = unsafe { &mut *self.internal_handle.unwrap() };
         let (sender, receiver): (
             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
             std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
@@ -66,19 +66,18 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
         while !window.should_close() || true {
             if window.should_close() {
-                println!("rendering {},{}", window.should_close(), true);
-
                 let frame = Takeable::try_take(&mut self.frame.borrow_mut());
                 if frame.is_some() {
                     match frame.unwrap().set_finish() {
                         Ok(_) => {}
                         Err(_) => {}
                     };
-                    //.finish().expect("failed to finish frame");
+                } else {
+                    println!("frame is non");
                 }
-                println!("unwrapped");
+                window.set_should_close(true);
 
-                // break;
+                break;
             } else {
                 glfw.poll_events();
                 let mut test_event = None;
@@ -165,40 +164,47 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         glfw.set_swap_interval(glfw::SwapInterval::Adaptive);
 
         self.ctx = Some(Box::new(glfw));
-        self.internal_handle = Rc::new(RefCell::new(Takeable::new(window)));
+        let raw_handle = Box::into_raw(Box::new(window));
+        self.internal_handle = Some(raw_handle);
         self.gl = Some(Box::new(gl));
 
         struct Backend {
-            gl_window: Rc<RefCell<Takeable<glfw::Window>>>,
+            gl_window: *mut glfw::Window,
         }
         unsafe impl<'a> glium::backend::Backend for Backend {
             fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-                Ok(self.gl_window.as_ref().borrow_mut().swap_buffers())
+                let window = unsafe { &mut *self.gl_window };
+
+                Ok(window.swap_buffers())
             }
 
             unsafe fn get_proc_address(&self, symbol: &str) -> *const std::os::raw::c_void {
-                self.gl_window
-                    .as_ref()
-                    .borrow_mut()
-                    .get_proc_address(symbol)
-                // todo!();
+                let window = &mut *self.gl_window;
+
+                window.get_proc_address(symbol)
             }
 
             fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-                let x = self.gl_window.as_ref().borrow().get_framebuffer_size();
+                let window = unsafe { &mut *self.gl_window };
+                let x = window.get_framebuffer_size();
+                // .get_framebuffer_size();
                 (x.0 as u32, x.1 as u32)
             }
 
             fn is_current(&self) -> bool {
-                self.gl_window.as_ref().borrow().is_current()
+                let window = unsafe { &mut *self.gl_window };
+
+                window.is_current()
             }
 
             unsafe fn make_current(&self) {
-                // self.gl_window.as_ref().unwrap().borrow().make_current()
+                let window = &mut *self.gl_window;
+
+                window.make_current()
             }
         }
 
-        let gl_window = self.internal_handle.clone();
+        let gl_window = raw_handle;
         let context = unsafe {
             // The first parameter is our backend.
             //
@@ -227,7 +233,8 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
     }
 
     fn load_with(&mut self, s: &str) -> *const std::ffi::c_void {
-        self.internal_handle.borrow_mut().get_proc_address(s) as *const std::ffi::c_void
+        let window = unsafe { &mut *self.internal_handle.unwrap() };
+        window.get_proc_address(s) as *const std::ffi::c_void
     }
 }
 
