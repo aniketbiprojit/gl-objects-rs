@@ -37,6 +37,8 @@ fn main() {
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
         "resources/shader_with_uniform.shader",
     );
+    println!("{}", rectangle1.is_in_bounding_box(20, 10));
+
     objects.push(rectangle1);
     objects.push(triangle2);
 

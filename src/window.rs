@@ -100,36 +100,26 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
         let gl_window = raw_handle;
 
-        // target.borrow_mut().clear_color(0.0, 1.0, 0.0, 1.0);
-        // target.borrow_mut().clear_depth(1.0);
-
-        // self.frame = target.clone();
-
         // self.render(objects);
 
         let mut frame_count = 0;
         let time = std::time::Instant::now();
 
+        window.make_current();
+
         while !window.should_close() || true {
             // FIXME - hacky. probably a bad idea to create the context inside
             // the loop but the fps was still around 60ish
+            let glium_context = unsafe {
+                let backend = Backend { gl_window };
+                glium::backend::Context::new(backend, false, Default::default()).unwrap()
+            };
             println!(
-                "frames per second {}",
+                "frames per second {} {} {}",
+                frame_count,
+                time.elapsed().as_secs(),
                 frame_count as f32 / time.elapsed().as_secs_f32()
             );
-            let glium_context = unsafe {
-                // The first parameter is our backend.
-                //
-                // The second parameter tells glium whether or not it should regularly call `is_current`
-                // on the backend to make sure that the OpenGL context is still the current one.
-                //
-                // It is recommended to pass `true`, but you can pass `false` if you are sure that no
-                // other OpenGL context will be made current in this thread.
-                let backend = Backend {
-                    gl_window: gl_window,
-                };
-                glium::backend::Context::new(backend, true, Default::default()).unwrap()
-            };
 
             if window.should_close() {
                 println!("frame is non");
@@ -340,16 +330,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let gl_window = raw_handle;
 
             let glium_context = {
-                // The first parameter is our backend.
-                //
-                // The second parameter tells glium whether or not it should regularly call `is_current`
-                // on the backend to make sure that the OpenGL context is still the current one.
-                //
-                // It is recommended to pass `true`, but you can pass `false` if you are sure that no
-                // other OpenGL context will be made current in this thread.
-                let backend = Backend {
-                    gl_window: gl_window,
-                };
+                let backend = Backend { gl_window };
                 glium::backend::Context::new(backend, true, Default::default()).unwrap()
             };
 
@@ -369,10 +350,8 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let mut frame_count = 0;
             let time = std::time::Instant::now();
             'render: loop {
-                println!(
-                    "frames per second: {}",
-                    frame_count as f32 / time.elapsed().as_secs_f32()
-                );
+                let render_time = std::time::Instant::now();
+
                 let mut test_event = None;
                 {
                     for event in event_pump.poll_iter() {
@@ -424,6 +403,17 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                 }
 
                 // window.gl_swap_window();
+
+                println!(
+                    "frames per second {} {} {}",
+                    frame_count,
+                    time.elapsed().as_secs(),
+                    frame_count as f32 / (time.elapsed().as_secs_f32())
+                );
+                println!(
+                    "render time {}",
+                    std::ops::Sub::sub(std::time::Instant::now(), render_time).as_micros()
+                );
                 frame_count += 1;
                 target.finish().unwrap();
             }
