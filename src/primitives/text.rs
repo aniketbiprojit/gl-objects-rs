@@ -148,7 +148,7 @@ impl GliumObjectTrait for Text {
         display,
         140 => {
                 vertex: "
-                    #version 140
+                    #version 410
                     in vec2 position;
                     in vec2 tex_coords;
                     in vec4 colour;
@@ -162,7 +162,7 @@ impl GliumObjectTrait for Text {
                 ",
 
                 fragment: "
-                    #version 140
+                    #version 410
                     uniform sampler2D tex;
                     in vec2 v_tex_coords;
                     in vec4 v_colour;
@@ -185,7 +185,7 @@ impl GliumObjectTrait for Text {
             glium::texture::MipmapsOption::NoMipmap,
         ))
         .unwrap();
-        let text: String = "A".into();
+        let text: String = "Cat".into();
 
         let width = 800;
         let glyphs = layout_paragraph(&self.font, Scale::uniform(24.0 * scale), width, &text);
@@ -246,20 +246,15 @@ impl GliumObjectTrait for Text {
                             screen_rect.max.x as f32 / screen_width as f32 - 0.5,
                             1.0 - screen_rect.max.y as f32 / screen_height as f32 - 0.5,
                         )) * 2.0;
-                    let gl_rect = Rect {
-                        left: min.x as u32,
-                        bottom: min.y as u32,
-                        width: (max.x - min.x) as u32,
-                        height: (max.y - min.y) as u32,
-                    };
+
                     vec![
                         Vertex {
-                            position: [gl_rect.left as f32, max.y],
+                            position: [min.x as f32, max.y],
                             tex_coords: [uv_rect.min.x, uv_rect.max.y],
                             colour,
                         },
                         Vertex {
-                            position: [gl_rect.left as f32, min.y],
+                            position: [min.x as f32, min.y],
                             tex_coords: [uv_rect.min.x, uv_rect.min.y],
                             colour,
                         },
@@ -279,7 +274,7 @@ impl GliumObjectTrait for Text {
                             colour,
                         },
                         Vertex {
-                            position: [gl_rect.left as f32, max.y],
+                            position: [min.x as f32, max.y],
                             tex_coords: [uv_rect.min.x, uv_rect.max.y],
                             colour,
                         },
