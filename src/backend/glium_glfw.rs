@@ -41,8 +41,8 @@ unsafe impl<'a> glium::backend::Backend for GlfwBackend {
 #[derive(Clone)]
 pub struct GlfwFacade {
     // contains everything related to the current context and its state
-    context: Rc<glium::backend::Context>,
-    backend: Rc<GlfwBackend>,
+    pub context: Rc<glium::backend::Context>,
+    pub backend: Rc<GlfwBackend>,
 }
 
 impl Facade for GlfwFacade {

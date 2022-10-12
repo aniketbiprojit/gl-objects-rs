@@ -1,5 +1,6 @@
 use crate::shaders::ShaderData;
 use gfx_maths::{Mat4, Vec3};
+use glium::backend::Facade;
 use glow::{Context, HasContext, NativeProgram};
 
 #[derive(Debug)]
@@ -52,6 +53,10 @@ impl MVP {
             model: Vec3::new(0.0, 0.0, 0.0),
         }
     }
+}
+
+pub trait GliumObjectTrait: OpenGLObjectTrait {
+    fn attach_glium(&mut self, frame: &mut glium::Frame, facade: &dyn Facade);
 }
 
 pub trait OpenGLObjectTrait {

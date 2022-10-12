@@ -1,11 +1,11 @@
+use glium::{Rect, Surface};
 use std::borrow::Cow;
 
-use glium::Frame;
-use glium::*;
+use glium::{backend::Facade, implement_vertex, program, uniform, Frame};
 use glow::HasContext;
-use rusttype::{point, Font, PositionedGlyph, Scale};
+use rusttype::{gpu_cache::Cache, point, vector, Font, PositionedGlyph, Scale};
 
-use crate::object::OpenGLObjectTrait;
+use crate::object::{GliumObjectTrait, OpenGLObjectTrait};
 
 fn layout_paragraph<'a>(
     font: &Font<'a>,
@@ -48,14 +48,14 @@ fn layout_paragraph<'a>(
     result
 }
 
-pub struct Text<'text_lifetime> {
+pub struct Text {
     pub target: Option<Frame>,
-    pub font: Font<'text_lifetime>,
+    pub font: Font<'static>,
     source: String,
 }
 
-impl<'a> Text<'a> {
-    pub fn new(target: Option<Frame>, font: Font<'a>, source: &str) -> Text<'a> {
+impl Text {
+    pub fn new(target: Option<Frame>, font: Font<'static>, source: &str) -> Text {
         Text {
             target,
             font,
@@ -64,15 +64,19 @@ impl<'a> Text<'a> {
     }
 }
 
-impl OpenGLObjectTrait for Text<'_> {
+impl OpenGLObjectTrait for Text {
     fn attach(&mut self, gl: &glow::Context) {
         unsafe {
             let program = gl.create_program().expect("Cannot create program");
+            Self::setup_shaders(gl, &program, self.source.to_string());
 
             gl.use_program(Some(program));
 
-            Self::setup_shaders(gl, &program, self.source.to_string());
-            let (cache_width, cache_height) = ((512.0 * 2.0) as u32, (512.0 * 2.0) as u32);
+            gl.link_program(program);
+
+            if !gl.get_program_link_status(program) {
+                panic!("{}", gl.get_program_info_log(program));
+            }
         }
     }
 
@@ -128,5 +132,175 @@ impl OpenGLObjectTrait for Text<'_> {
             gl.detach_shader(*program, shader);
             gl.delete_shader(shader);
         }
+    }
+}
+
+impl GliumObjectTrait for Text {
+    fn attach_glium(&mut self, frame: &mut glium::Frame, display: &dyn Facade) {
+        let target = frame;
+        let scale = 20.0;
+        let (cache_width, cache_height) = ((512.0 * scale) as u32, (512.0 * scale) as u32);
+        let mut cache: rusttype::gpu_cache::Cache<'static> = Cache::builder()
+            .dimensions(cache_width, cache_height)
+            .build();
+
+        let program = program!(
+        display,
+        140 => {
+                vertex: "
+                    #version 140
+                    in vec2 position;
+                    in vec2 tex_coords;
+                    in vec4 colour;
+                    out vec2 v_tex_coords;
+                    out vec4 v_colour;
+                    void main() {
+                        gl_Position = vec4(position, 0.0, 1.0);
+                        v_tex_coords = tex_coords;
+                        v_colour = colour;
+                    }
+                ",
+
+                fragment: "
+                    #version 140
+                    uniform sampler2D tex;
+                    in vec2 v_tex_coords;
+                    in vec4 v_colour;
+                    out vec4 f_colour;
+                    void main() {
+                        f_colour = v_colour * vec4(1.0, 1.0, 1.0, texture(tex, v_tex_coords).r);
+                    }
+                "
+        })
+        .unwrap();
+        let cache_tex = (glium::texture::Texture2d::with_format(
+            display,
+            glium::texture::RawImage2d {
+                data: Cow::Owned(vec![128u8; cache_width as usize * cache_height as usize]),
+                width: cache_width,
+                height: cache_height,
+                format: glium::texture::ClientFormat::U8,
+            },
+            glium::texture::UncompressedFloatFormat::U8,
+            glium::texture::MipmapsOption::NoMipmap,
+        ))
+        .unwrap();
+        let text: String = "A".into();
+
+        let width = 800;
+        let glyphs = layout_paragraph(&self.font, Scale::uniform(24.0 * scale), width, &text);
+        for glyph in &glyphs {
+            cache.queue_glyph(0, glyph.clone());
+        }
+        cache
+            .cache_queued(|rect, data| {
+                cache_tex.main_level().write(
+                    glium::Rect {
+                        left: rect.min.x,
+                        bottom: rect.min.y,
+                        width: rect.width(),
+                        height: rect.height(),
+                    },
+                    glium::texture::RawImage2d {
+                        data: Cow::Borrowed(data),
+                        width: rect.width(),
+                        height: rect.height(),
+                        format: glium::texture::ClientFormat::U8,
+                    },
+                );
+            })
+            .unwrap();
+
+        let uniforms = uniform! {
+            tex: cache_tex.sampled().magnify_filter(glium::uniforms::MagnifySamplerFilter::Nearest)
+        };
+
+        let vertex_buffer = {
+            #[derive(Copy, Clone)]
+            struct Vertex {
+                position: [f32; 2],
+                tex_coords: [f32; 2],
+                colour: [f32; 4],
+            }
+
+            implement_vertex!(Vertex, position, tex_coords, colour);
+            let colour = [0.0, 0.0, 0.0, 1.0];
+            let (screen_width, screen_height) = {
+                // let (w, h) = display.get_framebuffer_dimensions();
+                // (w as f32, h as f32)
+                (800, 600)
+            };
+            let origin = point(0.0, 0.0);
+
+            let vertices: Vec<Vertex> = glyphs
+                .iter()
+                .filter_map(|g| cache.rect_for(0, g).ok().flatten())
+                .flat_map(|(uv_rect, screen_rect)| {
+                    let min = origin
+                        + (vector(
+                            screen_rect.min.x as f32 / screen_width as f32 - 0.5,
+                            1.0 - screen_rect.min.y as f32 / screen_height as f32 - 0.5,
+                        )) * 2.0;
+                    let max = origin
+                        + (vector(
+                            screen_rect.max.x as f32 / screen_width as f32 - 0.5,
+                            1.0 - screen_rect.max.y as f32 / screen_height as f32 - 0.5,
+                        )) * 2.0;
+                    let gl_rect = Rect {
+                        left: min.x as u32,
+                        bottom: min.y as u32,
+                        width: (max.x - min.x) as u32,
+                        height: (max.y - min.y) as u32,
+                    };
+                    vec![
+                        Vertex {
+                            position: [gl_rect.left as f32, max.y],
+                            tex_coords: [uv_rect.min.x, uv_rect.max.y],
+                            colour,
+                        },
+                        Vertex {
+                            position: [gl_rect.left as f32, min.y],
+                            tex_coords: [uv_rect.min.x, uv_rect.min.y],
+                            colour,
+                        },
+                        Vertex {
+                            position: [max.x, min.y],
+                            tex_coords: [uv_rect.max.x, uv_rect.min.y],
+                            colour,
+                        },
+                        Vertex {
+                            position: [max.x, min.y],
+                            tex_coords: [uv_rect.max.x, uv_rect.min.y],
+                            colour,
+                        },
+                        Vertex {
+                            position: [max.x, max.y],
+                            tex_coords: [uv_rect.max.x, uv_rect.max.y],
+                            colour,
+                        },
+                        Vertex {
+                            position: [gl_rect.left as f32, max.y],
+                            tex_coords: [uv_rect.min.x, uv_rect.max.y],
+                            colour,
+                        },
+                    ]
+                })
+                .collect();
+
+            glium::VertexBuffer::new(display, &vertices).unwrap()
+        };
+
+        target
+            .draw(
+                &vertex_buffer,
+                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
+                &program,
+                &uniforms,
+                &glium::DrawParameters {
+                    blend: glium::Blend::alpha_blending(),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
     }
 }

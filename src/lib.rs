@@ -2,12 +2,12 @@ use crate::primitives::rectangle::Rectangle;
 use crate::window::Window;
 use window::WindowTrait;
 
+pub mod backend;
 pub mod imgui_ctx;
 pub mod object;
 pub mod primitives;
 pub mod shaders;
 mod window;
-pub mod backend;
 
 pub fn glfw_example() {
     let mut handle =
@@ -16,7 +16,7 @@ pub fn glfw_example() {
     handle.create_display();
     let rectangle = &mut Rectangle::new(200, 200, "resources/shader_with_matrix.shader");
 
-    handle.render(&mut vec![rectangle])
+    handle.render(&mut vec![rectangle], &mut vec![]);
 }
 
 #[cfg(feature = "sdl2")]
@@ -30,5 +30,5 @@ pub fn sdl2_example() {
     handle.create_display();
     let rectangle = &mut Rectangle::new(200, 200, "resources/shader_with_matrix.shader");
 
-    handle.render(&mut vec![rectangle])
+    handle.render(&mut vec![rectangle], &mut vec![])
 }

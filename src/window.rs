@@ -4,8 +4,8 @@ use glow::HasContext;
 
 use std::sync::mpsc::channel;
 
-use crate::backend::glium_glfw::GlfwBackend;
-use crate::object::{OpenGLObjectTrait, TestingEvent};
+use crate::backend::glium_glfw::{GlfwBackend, GlfwFacade};
+use crate::object::{GliumObjectTrait, OpenGLObjectTrait, TestingEvent};
 
 #[cfg(feature = "sdl2")]
 use crate::backend::glium_sdl2::Sdl2Backend;
@@ -36,12 +36,20 @@ pub trait WindowTrait<WindowContext, WindowHandle> {
         }
     }
     fn create_display<'a>(&mut self);
-    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>);
+    fn render<'a>(
+        &mut self,
+        objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>,
+        glium_objects: &mut Vec<&'a mut dyn GliumObjectTrait>,
+    );
     fn load_with(&mut self, s: &str) -> *const std::ffi::c_void;
 }
 
 impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> {
-    fn render<'a>(&mut self, objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>) {
+    fn render<'a>(
+        &mut self,
+        objects: &mut Vec<&'a mut dyn OpenGLObjectTrait>,
+        glium_objects: &mut Vec<&'a mut dyn GliumObjectTrait>,
+    ) {
         if self.gl.is_none() {
             panic!("gl is none");
         }
@@ -61,11 +69,6 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         let mut frame_count = 0;
         let time = std::time::Instant::now();
 
-        let glium_context = unsafe {
-            let backend = GlfwBackend { gl_window };
-            glium::backend::Context::new(backend, false, Default::default()).unwrap()
-        };
-
         let (sender, receiver): (
             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
             std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
@@ -84,15 +87,14 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             // FIXME - hacky. probably a bad idea to create the context inside
             // the loop but the fps was still around 60ish
 
-            println!(
-                "frames per second {} {} {}",
-                frame_count,
-                time.elapsed().as_secs(),
-                frame_count as f32 / time.elapsed().as_secs_f32()
-            );
-
             if window.should_close() {
                 println!("frame is non");
+                println!(
+                    "frames per second {} {} {}",
+                    frame_count,
+                    time.elapsed().as_secs(),
+                    frame_count as f32 / time.elapsed().as_secs_f32()
+                );
                 window.set_should_close(true);
 
                 break;
@@ -108,22 +110,19 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
                             window.get_framebuffer_size().0 as i32,
                             window.get_framebuffer_size().1 as i32,
                         ));
-
-                        // if let glfw::WindowEvent::Close = event {
-                        //     window.set_should_close(true);
-                        //     Takeable::take(&mut self.frame.borrow_mut())
-                        //         .finish()
-                        //         .unwrap();
-                        // }
                     }
                 }
+
+                let glium_context = unsafe {
+                    let backend = GlfwBackend { gl_window };
+
+                    glium::backend::Context::new(backend, true, Default::default()).unwrap()
+                };
 
                 let mut target = glium::Frame::new(
                     glium_context.clone(),
                     glium_context.get_framebuffer_dimensions(),
                 );
-
-                println!("{:?}", target.get_dimensions());
 
                 unsafe {
                     gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -142,6 +141,18 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
                         )
                     }
                     elem.render(gl);
+                }
+
+                let backend = std::rc::Rc::new(GlfwBackend { gl_window });
+
+                for elem in glium_objects.into_iter() {
+                    elem.attach_glium(
+                        &mut target,
+                        &GlfwFacade {
+                            backend: backend.clone(),
+                            context: glium_context.clone(),
+                        },
+                    );
                 }
 
                 let (x, y) = window.get_framebuffer_size();
@@ -255,7 +266,11 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
     }
 
     // calling externally on SDL2 fails.
-    fn render(&mut self, objects: &mut Vec<&mut dyn OpenGLObjectTrait>) {
+    fn render(
+        &mut self,
+        objects: &mut Vec<&mut dyn OpenGLObjectTrait>,
+        glium_objects: &mut Vec<&'a mut dyn GliumObjectTrait>,
+    ) {
         if self.gl.is_none() {
             panic!("gl is none");
         }
@@ -295,8 +310,6 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let mut frame_count = 0;
             let time = std::time::Instant::now();
             'render: loop {
-                let render_time = std::time::Instant::now();
-
                 let mut test_event = None;
                 {
                     for event in event_pump.poll_iter() {
@@ -318,6 +331,13 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                         }
 
                         if let sdl2::event::Event::Quit { .. } = event {
+                            println!(
+                                "frames per second {} {} {}",
+                                frame_count,
+                                time.elapsed().as_secs(),
+                                frame_count as f32 / (time.elapsed().as_secs_f32())
+                            );
+
                             break 'render;
                         }
                     }
@@ -349,16 +369,6 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
                 // window.gl_swap_window();
 
-                println!(
-                    "frames per second {} {} {}",
-                    frame_count,
-                    time.elapsed().as_secs(),
-                    frame_count as f32 / (time.elapsed().as_secs_f32())
-                );
-                println!(
-                    "render time {}",
-                    std::ops::Sub::sub(std::time::Instant::now(), render_time).as_micros()
-                );
                 frame_count += 1;
                 target.finish().unwrap();
             }

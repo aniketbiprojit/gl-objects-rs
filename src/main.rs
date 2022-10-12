@@ -1,3 +1,4 @@
+use crate::object::OpenGLObjectTrait;
 use crate::primitives::rectangle::Rectangle;
 use crate::primitives::text::Text;
 use crate::primitives::triangle;
@@ -25,6 +26,7 @@ fn main() {
         Window::<glfw::Glfw, glfw::Window>::new(width, height, format!("GLFW {}", title.clone()));
 
     let objects: &mut Vec<&mut dyn object::OpenGLObjectTrait> = &mut vec![];
+    let glium_objects: &mut Vec<&mut dyn object::GliumObjectTrait> = &mut vec![];
     let sdl = false; // is_sdl();
 
     #[cfg(feature = "sdl2")]
@@ -38,7 +40,8 @@ fn main() {
     let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
 
     let rectangle1 = &mut Rectangle::new(200, 200, "resources/shader_with_matrix.shader");
-
+    let rectangle2 = &mut Rectangle::new(100, 100, "resources/shader_with_matrix.shader");
+    rectangle2.move_model(200.0, 200.0, 0.0);
     let triangle2 = &mut triangle::Triangle::new(
         [0.5f32, 1.0f32, 0.0f32, 0.0f32, 1.0f32, 0.0f32],
         "resources/shader_with_uniform.shader",
@@ -49,7 +52,9 @@ fn main() {
 
     objects.push(rectangle1);
     objects.push(triangle2);
-    objects.push(text);
+    objects.push(rectangle2);
+
+    glium_objects.push(text);
 
     handle.create_display();
 
@@ -64,5 +69,5 @@ fn main() {
         objects.push(imgui_ctx.as_mut().unwrap());
     }
 
-    handle.render(objects)
+    handle.render(objects, glium_objects)
 }
