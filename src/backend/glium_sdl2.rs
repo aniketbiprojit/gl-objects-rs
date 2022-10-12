@@ -56,8 +56,8 @@ unsafe impl<'a> glium::backend::Backend for Sdl2Backend {
 #[derive(Clone)]
 pub struct Sdl2Facade {
     // contains everything related to the current context and its state
-    context: Rc<glium::backend::Context>,
-    backend: Rc<Sdl2Backend>,
+    pub context: Rc<glium::backend::Context>,
+    pub backend: Rc<Sdl2Backend>,
 }
 
 impl Facade for Sdl2Facade {

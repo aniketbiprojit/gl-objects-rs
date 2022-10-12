@@ -5,6 +5,7 @@ use glow::HasContext;
 use std::sync::mpsc::channel;
 
 use crate::backend::glium_glfw::{GlfwBackend, GlfwFacade};
+use crate::backend::glium_sdl2::Sdl2Facade;
 use crate::object::{GliumObjectTrait, OpenGLObjectTrait, TestingEvent};
 
 #[cfg(feature = "sdl2")]
@@ -269,7 +270,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
     fn render(
         &mut self,
         objects: &mut Vec<&mut dyn OpenGLObjectTrait>,
-        glium_objects: &mut Vec<&'a mut dyn GliumObjectTrait>,
+        glium_objects: &mut Vec<&mut dyn GliumObjectTrait>,
     ) {
         if self.gl.is_none() {
             panic!("gl is none");
@@ -365,6 +366,17 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
                     }
 
                     elem.render(gl);
+                }
+                let backend = std::rc::Rc::new(Sdl2Backend { gl_window });
+
+                for elem in glium_objects.into_iter() {
+                    elem.attach_glium(
+                        &mut target,
+                        &Sdl2Facade {
+                            backend: backend.clone(),
+                            context: glium_context.clone(),
+                        },
+                    );
                 }
 
                 // window.gl_swap_window();
