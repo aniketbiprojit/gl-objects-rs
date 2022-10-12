@@ -5,6 +5,7 @@ use crate::window::Window;
 use crate::window::WindowTrait;
 use rusttype::Font;
 
+pub mod backend;
 mod imgui_ctx;
 mod object;
 mod primitives;

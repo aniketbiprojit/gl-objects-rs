@@ -4,7 +4,11 @@ use glow::HasContext;
 
 use std::sync::mpsc::channel;
 
+use crate::backend::glium_glfw::GlfwBackend;
 use crate::object::{OpenGLObjectTrait, TestingEvent};
+
+#[cfg(feature = "sdl2")]
+use crate::backend::glium_sdl2::Sdl2Backend;
 
 pub struct Window<WindowContext, WindowHandle> {
     pub width: u32,
@@ -50,6 +54,18 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
         let raw_handle = self.internal_handle.unwrap();
         let window = unsafe { &mut *raw_handle };
 
+        let gl_window = raw_handle;
+
+        // self.render(objects);
+
+        let mut frame_count = 0;
+        let time = std::time::Instant::now();
+
+        let glium_context = unsafe {
+            let backend = GlfwBackend { gl_window };
+            glium::backend::Context::new(backend, false, Default::default()).unwrap()
+        };
+
         let (sender, receiver): (
             std::sync::mpsc::Sender<(f64, glfw::WindowEvent)>,
             std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
@@ -62,58 +78,12 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
             );
         }
 
-        struct Backend {
-            gl_window: *mut glfw::Window,
-        }
-        unsafe impl<'a> glium::backend::Backend for Backend {
-            fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-                let window = unsafe { &mut *self.gl_window };
-
-                Ok(window.swap_buffers())
-            }
-
-            unsafe fn get_proc_address(&self, symbol: &str) -> *const std::os::raw::c_void {
-                let window = &mut *self.gl_window;
-
-                window.get_proc_address(symbol)
-            }
-
-            fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-                let window = unsafe { &mut *self.gl_window };
-                let x = window.get_framebuffer_size();
-                // .get_framebuffer_size();
-                (x.0 as u32, x.1 as u32)
-            }
-
-            fn is_current(&self) -> bool {
-                let window = unsafe { &mut *self.gl_window };
-
-                window.is_current()
-            }
-
-            unsafe fn make_current(&self) {
-                let window = &mut *self.gl_window;
-
-                window.make_current()
-            }
-        }
-
-        let gl_window = raw_handle;
-
-        // self.render(objects);
-
-        let mut frame_count = 0;
-        let time = std::time::Instant::now();
-
         window.make_current();
 
         while !window.should_close() || true {
             // FIXME - hacky. probably a bad idea to create the context inside
             // the loop but the fps was still around 60ish
-            let glium_context = unsafe {
-                let backend = Backend { gl_window };
-                glium::backend::Context::new(backend, false, Default::default()).unwrap()
-            };
+
             println!(
                 "frames per second {} {} {}",
                 frame_count,
@@ -152,6 +122,8 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
                     glium_context.clone(),
                     glium_context.get_framebuffer_dimensions(),
                 );
+
+                println!("{:?}", target.get_dimensions());
 
                 unsafe {
                     gl.clear_color(0.1, 0.2, 0.3, 1.0);
@@ -300,37 +272,10 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
             let raw_handle = self.internal_handle.unwrap();
             let window = { &*raw_handle };
 
-            struct Backend {
-                gl_window: *mut sdl2::video::Window,
-            }
-            unsafe impl<'a> glium::backend::Backend for Backend {
-                fn swap_buffers(&self) -> Result<(), glium::SwapBuffersError> {
-                    let window = unsafe { &*self.gl_window };
-
-                    Ok(window.gl_swap_window())
-                }
-
-                unsafe fn get_proc_address(&self, symbol: &str) -> *const std::os::raw::c_void {
-                    let window = &*self.gl_window;
-                    window.subsystem().gl_get_proc_address(symbol) as _
-                }
-
-                fn get_framebuffer_dimensions(&self) -> (u32, u32) {
-                    let window = unsafe { &*self.gl_window };
-                    window.drawable_size()
-                }
-
-                fn is_current(&self) -> bool {
-                    true
-                }
-
-                unsafe fn make_current(&self) {}
-            }
-
             let gl_window = raw_handle;
 
             let glium_context = {
-                let backend = Backend { gl_window };
+                let backend = Sdl2Backend { gl_window };
                 glium::backend::Context::new(backend, true, Default::default()).unwrap()
             };
 

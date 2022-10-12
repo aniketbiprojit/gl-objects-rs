@@ -39,7 +39,7 @@ exclude = [
 ]
 
 [features]
-default = ['sdl2']
+default = []
 image = ["sdl2-sys/image"]
 mixer = ["sdl2-sys/mixer"]
 sdl2 = []

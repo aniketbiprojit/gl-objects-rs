@@ -7,6 +7,7 @@ pub mod object;
 pub mod primitives;
 pub mod shaders;
 mod window;
+pub mod backend;
 
 pub fn glfw_example() {
     let mut handle =
