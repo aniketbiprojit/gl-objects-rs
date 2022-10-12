@@ -9,8 +9,8 @@ assignees: ''
 
 **Pre-requisite Questions**
 Please tick if any
-- [] Have you checked the existing issues.
-- [] Is the local repo updated to the latest remote repo commit?
+- [ ] Have you checked the existing issues.
+- [ ] Is the local repo updated to the latest remote repo commit?
 
 **Describe the bug**
 A clear and concise description of what the bug is.

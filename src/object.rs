@@ -56,7 +56,7 @@ impl MVP {
 }
 
 pub trait GliumObjectTrait: OpenGLObjectTrait {
-    fn attach_glium(&mut self, frame: &mut glium::Frame, facade: &dyn Facade);
+    fn attach_glium(&mut self, gl: &Context, frame: &mut glium::Frame, facade: &dyn Facade);
 }
 
 pub trait OpenGLObjectTrait {

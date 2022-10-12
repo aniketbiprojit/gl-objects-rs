@@ -148,6 +148,7 @@ impl WindowTrait<glfw::Glfw, glfw::Window> for Window<glfw::Glfw, glfw::Window> 
 
                 for elem in glium_objects.into_iter() {
                     elem.attach_glium(
+                        gl,
                         &mut target,
                         &GlfwFacade {
                             backend: backend.clone(),
@@ -371,6 +372,7 @@ impl WindowTrait<sdl2::Sdl, sdl2::video::Window> for Window<sdl2::Sdl, sdl2::vid
 
                 for elem in glium_objects.into_iter() {
                     elem.attach_glium(
+                        gl,
                         &mut target,
                         &Sdl2Facade {
                             backend: backend.clone(),

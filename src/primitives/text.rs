@@ -1,4 +1,4 @@
-use glium::{Rect, Surface};
+use glium::Surface;
 use std::borrow::Cow;
 
 use glium::{backend::Facade, implement_vertex, program, uniform, Frame};
@@ -136,7 +136,7 @@ impl OpenGLObjectTrait for Text {
 }
 
 impl GliumObjectTrait for Text {
-    fn attach_glium(&mut self, frame: &mut glium::Frame, display: &dyn Facade) {
+    fn attach_glium(&mut self, gl: &glow::Context, frame: &mut glium::Frame, display: &dyn Facade) {
         let target = frame;
         let scale = 20.0;
         let (cache_width, cache_height) = ((512.0 * scale) as u32, (512.0 * scale) as u32);
@@ -173,6 +173,7 @@ impl GliumObjectTrait for Text {
                 "
         })
         .unwrap();
+
         let cache_tex = (glium::texture::Texture2d::with_format(
             display,
             glium::texture::RawImage2d {
